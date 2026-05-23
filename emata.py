@@ -340,6 +340,7 @@ def main():
                     # Toggle and save
                     new_state = not config.safe_mode
                     config.update_env_file("EMATA_SAFE_MODE", "true" if new_state else "false")
+                    # Use the updated state for feedback
                     status = "[bold green]ON[/bold green]" if config.safe_mode else "[bold yellow]OFF[/bold yellow]"
                     console.print(f"✓ Safe Mode is now {status}")
                     continue
@@ -453,53 +454,51 @@ def main():
                     import logging
                     ui_logger = logging.getLogger("gagent.ui")
                     
-                    for chunk in agent.send_message_stream(
-                        user_input, 
-                        on_tool_call=wrapped_on_tool_call,
-                        on_confirm=wrapped_on_confirm
-                    ):
-                        chunk_type = chunk["type"]
-                        content = chunk["content"]
-                        
-                        ui_logger.debug(f"UI received chunk: {chunk_type}")
-                        
-                        if chunk_type == "heartbeat":
-                            continue
-                        
-                        # Only mark as having content if it's something the user can actually see or a tool call
-                        has_content = True
-                        
-                        if chunk_type == "thought":
-                            stop_live()
-                            if current_type != "thought":
-                                console.print("[bold dim yellow]💭 Thinking...[/bold dim yellow]")
-                                current_type = "thought"
-                                thinking_content = ""
+                    with console.status("[bold cyan]Agent is working...[/bold cyan]", spinner="dots"):
+                        for chunk in agent.send_message_stream(
+                            user_input, 
+                            on_tool_call=wrapped_on_tool_call,
+                            on_confirm=wrapped_on_confirm
+                        ):
+                            chunk_type = chunk["type"]
+                            content = chunk["content"]
                             
-                            # Print thought segments directly in dim style without creating new lines
-                            sys.stdout.write(f"\033[2m{content}\033[0m")
-                            sys.stdout.flush()
-                            thinking_content += content
-                        
-                        elif chunk_type == "text":
-                            if current_type == "thought":
-                                # Finish thinking block with a clean break
-                                sys.stdout.write("\n\n")
-                                sys.stdout.flush()
+                            ui_logger.debug(f"UI received chunk: {chunk_type}")
                             
-                            if current_type != "text":
-                                console.print("[bold cyan]Agent:[/bold cyan]")
-                                current_type = "text"
-                                markdown_content = ""
+                            if chunk_type == "heartbeat":
+                                continue
                             
-                            markdown_content += content
-                            full_response_text += content
+                            # Only mark as having content if it's something the user can actually see or a tool call
+                            has_content = True
                             
-                            if not live:
-                                live = Live(Markdown(markdown_content), console=console, refresh_per_second=10, transient=False)
-                                live.start()
-                            else:
-                                live.update(Markdown(markdown_content))
+                            if chunk_type == "thought":
+                                stop_live()
+                                if current_type != "thought":
+                                    console.print("[bold dim yellow]💭 Thinking...[/bold dim yellow]")
+                                    current_type = "thought"
+                                    thinking_content = ""
+                                
+                                # Print thought segments directly in dim style without creating new lines
+                                console.print(f"[dim yellow]{content}[/dim yellow]", end="", flush=True)
+                                thinking_content += content
+                            
+                            elif chunk_type == "text":
+                                if current_type == "thought":
+                                    console.print("\n")
+                                
+                                if current_type != "text":
+                                    console.print("[bold cyan]Agent:[/bold cyan]")
+                                    current_type = "text"
+                                    markdown_content = ""
+                                
+                                markdown_content += content
+                                full_response_text += content
+                                
+                                if not live:
+                                    live = Live(Markdown(markdown_content), console=console, refresh_per_second=10, transient=False)
+                                    live.start()
+                                else:
+                                    live.update(Markdown(markdown_content))
                 finally:
                     stop_live()
                 
