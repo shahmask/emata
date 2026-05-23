@@ -1,0 +1,4 @@
+google-genai
+google-api-core
+rich
+python-dotenv

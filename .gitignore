@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.log
+.env
+.emata/
+sessions/
+test_workspace/
