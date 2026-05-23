@@ -326,25 +326,52 @@ def main():
                     new_state = "off" if current == "on" else "on"
                     set_tmux_mouse(new_state)
                     
-                    msg = "[bold green]✓ Mouse Mode ON[/bold green] (Scrolling active)" if new_state == "on" else \
-                          "[bold yellow]✓ Mouse Mode OFF[/bold yellow] (Native Highlighting/Copying active)"
-                    console.print(msg)
                     if new_state == "on":
-                        console.print("[dim]💡 Tip: Hold [bold]Shift[/bold] while dragging to copy text without turning this off.[/dim]")
+                        msg = Text()
+                        msg.append("✓ Mouse Mode ", style="bold green")
+                        msg.append("ON", style="bold green")
+                        msg.append(" (Scrolling active)", style="green")
+                        console.print(msg)
+                        
+                        tip = Text()
+                        tip.append("💡 Tip: ", style="bold yellow")
+                        tip.append("Hold ", style="dim")
+                        tip.append("Shift", style="bold cyan")
+                        tip.append(" while dragging to copy text without turning this off.", style="dim")
+                        console.print(tip)
+                    else:
+                        msg = Text()
+                        msg.append("✓ Mouse Mode ", style="bold yellow")
+                        msg.append("OFF", style="bold yellow")
+                        msg.append(" (Native Highlighting/Copying active)", style="yellow")
+                        console.print(msg)
                     continue
 
                 elif user_input.lower() == ":help":
-                    console.print("[bold cyan]Available Commands:[/bold cyan]")
-                    console.print("  [yellow]:clear[/yellow]          Reset conversation history")
-                    console.print("  [yellow]:sessions[/yellow]       List all concurrent EMATA sessions (alias: :session)")
-                    console.print("  [yellow]:change-model[/yellow]  List and select a default model from the API")
-                    console.print("  [yellow]:model <name>[/yellow]    Switch active model for this session")
-                    console.print("  [yellow]:auth[/yellow]           Toggle between API Key and Google Auth")
-                    console.print("  [yellow]:safe[/yellow]           Toggle Safe Mode (Confirmation for risky commands)")
-                    console.print("  [yellow]:mouse[/yellow]          Toggle Mouse Mode (Turn OFF to copy text easily)")
-                    console.print("                  [dim]Note: You can also hold [bold]Shift[/bold] to copy anytime.[/dim]")
-                    console.print("  [yellow]:config[/yellow]         View active configuration and Session ID")
-                    console.print("  [yellow]:exit[/yellow] or [yellow]:quit[/yellow]    Exit current session and clear history")
+                    help_text = Text()
+                    help_text.append("Available Commands:\n", style="bold cyan")
+                    
+                    commands = [
+                        (":clear", "Reset conversation history"),
+                        (":session", "List all concurrent EMATA sessions"),
+                        (":change-model", "List and select a default model from the API"),
+                        (":model <name>", "Switch active model for this session"),
+                        (":auth", "Toggle between API Key and Google Auth"),
+                        (":safe", "Toggle Safe Mode (Confirmation for risky commands)"),
+                        (":mouse", "Toggle Mouse Mode (Turn OFF to copy text easily)"),
+                        (":config", "View active configuration and Session ID"),
+                        (":exit", "Exit current session and clear history")
+                    ]
+                    
+                    for cmd, desc in commands:
+                        help_text.append(f"  {cmd.ljust(15)} ", style="yellow")
+                        help_text.append(f"{desc}\n", style="white")
+                    
+                    help_text.append("\nNote: You can also hold ", style="dim")
+                    help_text.append("Shift", style="bold cyan")
+                    help_text.append(" to copy anytime natively.", style="dim")
+                    
+                    console.print(help_text)
                     continue
 
                 elif user_input.lower() == ":safe":
