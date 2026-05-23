@@ -41,6 +41,12 @@ def show_welcome_banner(config: Config, debug: bool = False):
     banner_text.append("🚀 EMATA Online (Enduring Multi-Agent Terminal App)\n", style="bold cyan")
     banner_text.append(f"Model: {config.model}", style="green")
     
+    # Show Safe Mode status in banner
+    safe_status = "ON" if config.safe_mode else "OFF"
+    safe_style = "bold green" if config.safe_mode else "bold yellow"
+    banner_text.append(" | ", style="white")
+    banner_text.append(f"🛡️  Safe Mode: {safe_status}", style=safe_style)
+    
     if config.system_instructions:
         banner_text.append(" | ", style="white")
         banner_text.append("⚙️ Local instructions loaded", style="bold yellow")
@@ -54,8 +60,13 @@ def show_welcome_banner(config: Config, debug: bool = False):
         banner_text.append("\nSession ID: ", style="bold magenta")
         banner_text.append(session_id, style="bold cyan")
         
-    banner_text.append("\n\nType your request. Commands: :clear (reset chat), :session (list work), :exit", style="dim white")
-    banner_text.append("\n[dim]💡 Tip: Hold [bold]Shift[/bold] while dragging with your mouse to copy text instantly.[/dim]")
+    banner_text.append("\n\nType your request. Commands: :clear, :session, :safe, :help, :exit", style="dim white")
+    
+    # Properly styled tip without literal markup tags
+    banner_text.append("\n\n💡 Tip: ", style="bold yellow")
+    banner_text.append("Hold ", style="dim")
+    banner_text.append("Shift", style="bold cyan")
+    banner_text.append(" while dragging with your mouse to copy text instantly.", style="dim")
     
     panel = Panel(banner_text, border_style="cyan", title="[bold cyan]EMATA Engine[/bold cyan]")
     console.print(panel)
