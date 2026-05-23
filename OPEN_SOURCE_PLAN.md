@@ -39,8 +39,8 @@ A lightweight, no-bloat, Gemini-native terminal agent built for real-world engin
 ---
 
 ## 🚀 Key Open-Source Features Implemented
-1.  **"Safe Mode" (Planned)**:
-    *   Agent must ask `[y/N]` before running risky commands (rm, git push).
+1.  **"Safe Mode"**:
+    *   Agent now asks `[y/N]` before running risky commands (rm, git push, sudo, etc.). Can be toggled with `:safe`.
 2.  **Web-Search Toggle (Planned)**:
     *   Allow users to disable Google Search grounding via CLI flag.
 3.  **Dynamic Model Discovery**: 
@@ -59,4 +59,5 @@ A lightweight, no-bloat, Gemini-native terminal agent built for real-world engin
 1.  Finalize the Name.
 2.  Refactor `agent.py` to remove hardcoded paths.
 3.  Create the `install.sh` "One-Liner."
-4.  Draft the GitHub `LICENSE` (MIT) and `CONTRIBUTING.md`.
+4.  Implement Web-Search Toggle (Item 2).
+5.  Draft the GitHub `LICENSE` (MIT) and `CONTRIBUTING.md`.
