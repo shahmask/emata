@@ -41,23 +41,23 @@ A lightweight, no-bloat, Gemini-native terminal agent built for real-world engin
 ## 🚀 Key Open-Source Features Implemented
 1.  **"Safe Mode"**:
     *   Agent now asks `[y/N]` before running risky commands (rm, git push, sudo, etc.). Can be toggled with `:safe`.
-2.  **Web-Search Toggle (Planned)**:
-    *   Allow users to disable Google Search grounding via CLI flag.
-3.  **Dynamic Model Discovery**: 
+2.  **Visual Status Indicator**:
+    *   Added a live "Agent is working..." spinner during thinking and tool execution phases.
+3.  **UI Refinement**:
+    *   Refactored banner and help systems to use Rich `Text` objects, eliminating literal markup tags (e.g., `[dim]`) on unstable terminals.
+4.  **Deep Clipboard Integration**:
+    *   Implemented **OSC 52** support in both the TMUX launcher and the **Nexus Terminal** (Virtual Gemini CLI) frontend, enabling seamless copy-paste over SSH/Web.
+5.  **Dynamic Model Discovery**: 
     *   Implemented `:change-model` to fetch available models directly from the API and update global defaults.
-4.  **Guided Authentication**:
-    *   Implemented `:auth` with a built-in diagnostic flow that checks for `gcloud` and guides users through the ADC handshake.
-5.  **Multi-Tenancy**:
-    *   Isolated history files per session ID, allowing concurrent independent work in the same folder.
-6.  **Copy-Paste & Scroll Control**:
-    *   Implemented `:mouse` toggle to allow users to switch between "Rich Scrolling" and "Native Highlighting" for easy `Cmd+C` copying.
-    *   Added **OSC 52** support to the TMUX engine for system-wide clipboard sync.
+6.  **Guided Authentication**:
+    *   Implemented `:auth` with a built-in diagnostic flow that checks for `gcloud` and guides users through the ADC handshake (with automated command spawning).
 
 ---
 
 ## 📅 Immediate Next Steps
-1.  Finalize the Name.
-2.  Refactor `agent.py` to remove hardcoded paths.
-3.  Create the `install.sh` "One-Liner."
-4.  Implement Web-Search Toggle (Item 2).
-5.  Draft the GitHub `LICENSE` (MIT) and `CONTRIBUTING.md`.
+1.  **Implement Web-Search Toggle (Item 2)**: Add ability to disable Google Search grounding via `:search` command or CLI flag.
+2.  **Portability Refactor**: Remove hardcoded home directory paths in `agent.py`.
+3.  **Configuration Migration**: Move from local `.env` to global config at `~/.config/emata/config.yaml`.
+4.  **One-Liner Installer**: Create `install.sh` for global linking and venv setup.
+5.  **Finalize Name**: Choose between **Emata** and **gagent**.
+6.  **Legal**: Draft the GitHub `LICENSE` (MIT) and `CONTRIBUTING.md`.
