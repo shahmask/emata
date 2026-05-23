@@ -18,6 +18,7 @@ class Config:
         self.api_key = os.getenv("GEMINI_API_KEY")
         self.model = os.getenv("GEMINI_MODEL", DEFAULT_MODEL)
         self.auth_mode = os.getenv("EMATA_AUTH_MODE", "api_key")
+        self.safe_mode = os.getenv("EMATA_SAFE_MODE", "true").lower() == "true"
         
         # Load thinking budget and level
         self.thinking_level = os.getenv("GEMINI_THINKING_LEVEL")
@@ -79,5 +80,7 @@ class Config:
             self.model = value
         elif key == "EMATA_AUTH_MODE":
             self.auth_mode = value
+        elif key == "EMATA_SAFE_MODE":
+            self.safe_mode = value.lower() == "true"
         elif key == "GEMINI_API_KEY":
             self.api_key = value

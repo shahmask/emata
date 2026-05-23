@@ -193,7 +193,7 @@ class Agent:
             except Exception:
                 pass
 
-    def send_message_stream(self, user_text: str, on_tool_call=None):
+    def send_message_stream(self, user_text: str, on_tool_call=None, on_confirm=None):
         """Sends a message to Gemini and yields output chunks (including thinking and text) as they stream in.
         Supports executing tool calling loops interactively while streaming.
         """
@@ -343,6 +343,30 @@ class Agent:
                     if on_tool_call:
                         on_tool_call(name, args)
                         
+                    # Handle Safe Mode confirmation
+                    if self.config.safe_mode and on_confirm:
+                        is_risky = False
+                        if name == "delete_file":
+                            is_risky = True
+                        elif name == "run_command":
+                            cmd = args.get("command", "").lower()
+                            # Standard risky keywords/patterns
+                            risky_keywords = ["rm ", "mv ", "git reset", "git push", "chmod", "chown", "kill", "systemctl", "sudo", "apt", ">"]
+                            if any(k in cmd for k in risky_keywords):
+                                is_risky = True
+                        
+                        if is_risky:
+                            confirmed = on_confirm(name, args)
+                            if not confirmed:
+                                logger.info(f"User declined execution of {name}")
+                                tool_part = Part.from_function_response(
+                                    name=name,
+                                    response={"result": f"Error: Execution of tool '{name}' was declined by the user for safety reasons."}
+                                )
+                                self.history.append(Content(role="tool", parts=[tool_part]))
+                                self.save_session()
+                                continue
+
                     logger.info(f"Executing tool: {name}")
                     try:
                         tool_func = TOOL_MAPPING.get(name)

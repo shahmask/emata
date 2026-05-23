@@ -326,13 +326,22 @@ def main():
                     console.print("[bold cyan]Available Commands:[/bold cyan]")
                     console.print("  [yellow]:clear[/yellow]          Reset conversation history")
                     console.print("  [yellow]:sessions[/yellow]       List all concurrent EMATA sessions (alias: :session)")
-                    console.print("  [yellow]:change-model[/yellow]  List and select a default model from the API (alias: :chante-model)")
+                    console.print("  [yellow]:change-model[/yellow]  List and select a default model from the API")
                     console.print("  [yellow]:model <name>[/yellow]    Switch active model for this session")
                     console.print("  [yellow]:auth[/yellow]           Toggle between API Key and Google Auth")
+                    console.print("  [yellow]:safe[/yellow]           Toggle Safe Mode (Confirmation for risky commands)")
                     console.print("  [yellow]:mouse[/yellow]          Toggle Mouse Mode (Turn OFF to copy text easily)")
                     console.print("                  [dim]Note: You can also hold [bold]Shift[/bold] to copy anytime.[/dim]")
                     console.print("  [yellow]:config[/yellow]         View active configuration and Session ID")
                     console.print("  [yellow]:exit[/yellow] or [yellow]:quit[/yellow]    Exit current session and clear history")
+                    continue
+
+                elif user_input.lower() == ":safe":
+                    # Toggle and save
+                    new_state = not config.safe_mode
+                    config.update_env_file("EMATA_SAFE_MODE", "true" if new_state else "false")
+                    status = "[bold green]ON[/bold green]" if config.safe_mode else "[bold yellow]OFF[/bold yellow]"
+                    console.print(f"✓ Safe Mode is now {status}")
                     continue
 
                 elif user_input.lower() in [":session", ":sessions"]:
@@ -422,13 +431,33 @@ def main():
                     current_type = "tool"
                     markdown_content = ""
 
+                def wrapped_on_confirm(name, args):
+                    stop_live()
+                    import json
+                    console.print(Panel(
+                        f"[bold red]⚠️  RISKY COMMAND DETECTED[/bold red]\n"
+                        f"Tool: [yellow]{name}[/yellow]\n"
+                        f"Args: [dim]{json.dumps(args, indent=2)}[/dim]\n\n"
+                        f"[bold cyan]Do you want to proceed? (y/N): [/bold cyan]",
+                        border_style="red"
+                    ))
+                    try:
+                        choice = console.input("").strip().lower()
+                        return choice == "y"
+                    except (KeyboardInterrupt, EOFError):
+                        return False
+
                 thinking_content = ""
                 
                 try:
                     import logging
                     ui_logger = logging.getLogger("gagent.ui")
                     
-                    for chunk in agent.send_message_stream(user_input, on_tool_call=wrapped_on_tool_call):
+                    for chunk in agent.send_message_stream(
+                        user_input, 
+                        on_tool_call=wrapped_on_tool_call,
+                        on_confirm=wrapped_on_confirm
+                    ):
                         chunk_type = chunk["type"]
                         content = chunk["content"]
                         
