@@ -596,10 +596,10 @@
                 </div>
                 <div class="terminal-body" id="terminalOutput">
                     <span class="term-comment"># Demo 1: Direct single-shot piping context hydration</span><br>
-                    <span class="term-prompt">$</span> cat database.py | emata -m <span class="term-args">gemini-3.5-pro</span> <span class="term-args">--diff</span> "explain how this connects"<br>
+                    <span class="term-prompt">$</span> cat database.py | emata -m <span class="term-args">gemini-3-flash-preview</span> <span class="term-args">--diff</span> "explain how this connects"<br>
                     Working...<br>
                     <span style="color: #cbd5e1;">Analyzing database file and unstaged git changes...</span><br>
-                    <span style="color: var(--accent-cyan); font-weight: bold;">[Gemini 3.5 Pro]:</span> The connection flow uses a local connection pool. Your active git diff confirms you migrated to SSL auth natively. Here is the refactored pool init...<br>
+                    <span style="color: var(--accent-cyan); font-weight: bold;">[Gemini 3 Flash Preview]:</span> The connection flow uses a local connection pool. Your active git diff confirms you migrated to SSL auth natively. Here is the refactored pool init...<br>
                     <br>
                     <span class="term-comment"># Demo 2: Indestructible tmux-backed persistent session launch</span><br>
                     <span class="term-prompt">$</span> emata<br>
