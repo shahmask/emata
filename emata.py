@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
+print("--- PYTHON STARTUP ---")
 import sys, os, traceback, subprocess, shutil, platform, datetime
 from pathlib import Path
 
 # 1. IMMEDIATE LOGGING
+print("Creating .emata directory...")
 os.makedirs(os.path.expanduser("~/.emata"), exist_ok=True)
 BOOT_LOG = os.path.expanduser("~/.emata/boot_debug.log")
 
 def log(msg):
+    print(f"[DEBUG] {msg}")
     try:
         with open(BOOT_LOG, "a") as f:
             ts = datetime.datetime.now().strftime("%H:%M:%S")
             f.write(f"[{ts}] {msg}\n")
-    except: pass
+    except Exception as e:
+        print(f"Log Error: {e}")
 
 log("\n--- STARTING EMATA (v1.0.12) ---")
 log(f"System PATH: {os.environ.get('PATH')}")
