@@ -103,17 +103,17 @@ def handle_auth_setup(config):
                             log(f"Execution failed: {e}")
                             console.print(f"[red]Execution error: {e}[/red]")
                             input("Press Enter...")
-            
-            if adc_path.exists():
-                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                console.print("[green]✅ Google Auth ready.[/green]")
-            else:
-                console.print("[red]❌ Auth failed or cancelled.[/red]")
-                input("\nPress Enter...")
-        except Exception as e:
-            log(f"Error during ADC check/login: {e}")
-            console.print(f"[red]Authentication error: {e}[/red]")
-            input("Press Enter...")
+                
+                if adc_path.exists():
+                    config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                    console.print("[green]✅ Google Auth ready.[/green]")
+                else:
+                    console.print("[red]❌ Auth failed or cancelled.[/red]")
+                    input("\nPress Enter...")
+            except Exception as e:
+                log(f"Error during ADC check/login: {e}")
+                console.print(f"[red]Authentication error: {e}[/red]")
+                input("Press Enter...")
 
 def main():
     config = Config()
