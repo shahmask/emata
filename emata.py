@@ -169,78 +169,92 @@ def set_tmux_mouse(state: str):
 
 def handle_auth_setup(config: Config):
     """Prompts the user to configure authentication (API Key or Google Auth)."""
-    console.print("\n[bold cyan]🔐 Authentication Setup:[/bold cyan]")
-    console.print(f"  Current Mode: [yellow]{config.auth_mode}[/yellow]")
-    console.print("-" * 30)
-    console.print("  1. [bold]API Key[/bold] (Standard, works everywhere)")
-    console.print("  2. [bold]Google Auth[/bold] (Enterprise, uses your gcloud session)")
-    
     try:
-        choice = console.input("\n[bold cyan]Select auth mode (1/2 or Enter to cancel): [/bold cyan]").strip()
-        if choice == "1":
-            new_key = console.input("[bold cyan]Enter your GEMINI_API_KEY (leave blank to keep current): [/bold cyan]").strip()
-            if new_key:
-                config.update_env_file("GEMINI_API_KEY", new_key)
-            config.update_env_file("EMATA_AUTH_MODE", "api_key")
-            console.print("[bold green]✓ Auth mode set to API Key.[/bold green]")
+        console.print("\n[bold cyan]🔐 Authentication Setup:[/bold cyan]")
+        console.print(f"  Current Mode: [yellow]{config.auth_mode}[/yellow]")
+        console.print("-" * 30)
+        console.print("  1. [bold]API Key[/bold] (Standard, works everywhere)")
+        console.print("  2. [bold]Google Auth[/bold] (Enterprise, uses your gcloud session)")
         
-        elif choice == "2":
-            # Perform diagnostics for Google Auth
-            console.print("\n[bold yellow]🔍 Checking Google Cloud environment...[/bold yellow]")
+        try:
+            choice = console.input("\n[bold cyan]Select auth mode (1/2 or Enter to cancel): [/bold cyan]").strip()
+            if choice == "1":
+                new_key = console.input("[bold cyan]Enter your GEMINI_API_KEY (leave blank to keep current): [/bold cyan]").strip()
+                if new_key:
+                    config.update_env_file("GEMINI_API_KEY", new_key)
+                config.update_env_file("EMATA_AUTH_MODE", "api_key")
+                console.print("[bold green]✓ Auth mode set to API Key.[/bold green]")
             
-            has_gcloud = subprocess.run(["which", "gcloud"], capture_output=True).returncode == 0
-            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-            has_adc = adc_path.exists()
-            
-            if not has_gcloud:
-                console.print("[red]❌ Error: 'gcloud' CLI not found.[/red]")
-                console.print("[dim]Please install it first: https://cloud.google.com/sdk/docs/install[/dim]")
-            elif not has_adc:
-                console.print("[yellow]⚠️  Handshake required![/yellow]")
-                console.print("Your gcloud session is active, but Application Default Credentials (ADC) are missing.")
-                console.print("\n[bold cyan]To fix this, run this command in your terminal:[/bold cyan]")
-                console.print(Panel("[white]gcloud auth application-default login[/white]", border_style="green"))
+            elif choice == "2":
+                # Perform diagnostics for Google Auth
+                console.print("\n[bold yellow]🔍 Checking Google Cloud environment...[/bold yellow]")
                 
+                # Check for gcloud in a more robust way
                 try:
-                    run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
-                    if run_it == 'y':
-                        console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
-                        console.print("[bold red]⚠️  IMPORTANT:[/bold red] Copy the URL below into your local browser.")
-                        console.print("In your browser, you [bold]MUST check all the checkboxes[/bold]")
-                        console.print("for the permissions listed or the handshake will fail.")
-
-                        # Use --no-browser for headless/remote server support
-                        try:
-                            scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
-                            result = subprocess.run(
-                                ["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"],
-                                check=False
-                            )
-                            console.print(f"[dim]gcloud exit code: {result.returncode}[/dim]")
-                        except Exception as e:
-                            console.print(f"[bold red]❌ Subprocess Error:[/bold red] {e}")
-                            console.input("\n[yellow]Press Enter to see details...[/yellow]")
-                        
-                        # Re-check after the command runs
-                        if adc_path.exists():
-                            console.print("[green]✅ Google Auth is now ready![/green]")
-                            config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                            console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
-                        else:
-                            console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
-                            console.print(f"[dim]Checked path: {adc_path}[/dim]")
-                            console.input("\n[yellow]Press Enter to continue (app may crash if auth is missing)...[/yellow]")
-                    else:
-                        console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
-                except (KeyboardInterrupt, EOFError):
-                    console.print("\n[yellow]Cancelled auth handshake.[/yellow]")
-            else:
-                console.print("[green]✅ Google Auth is ready to use![/green]")
-                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
+                    res = subprocess.run(["gcloud", "--version"], capture_output=True, text=True)
+                    has_gcloud = res.returncode == 0
+                except FileNotFoundError:
+                    has_gcloud = False
                 
-    except (KeyboardInterrupt, EOFError):
-        console.print("\n[yellow]Cancelled auth change.[/yellow]")
+                adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
+                has_adc = adc_path.exists()
+                
+                if not has_gcloud:
+                    console.print("[red]❌ Error: 'gcloud' CLI not found.[/red]")
+                    console.print("[dim]Please install it first: https://cloud.google.com/sdk/docs/install[/dim]")
+                    console.input("\n[yellow]Press Enter to continue...[/yellow]")
+                elif not has_adc:
+                    console.print("[yellow]⚠️  Handshake required![/yellow]")
+                    console.print("Your gcloud session is active, but Application Default Credentials (ADC) are missing.")
+                    console.print("\n[bold cyan]To fix this, run this command in your terminal:[/bold cyan]")
+                    console.print(Panel("[white]gcloud auth application-default login[/white]", border_style="green"))
+                    
+                    try:
+                        run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
+                        if run_it == 'y':
+                            console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
+                            console.print("[bold red]⚠️  IMPORTANT:[/bold red] Copy the URL below into your local browser.")
+                            console.print("In your browser, you [bold]MUST check all the checkboxes[/bold]")
+                            console.print("for the permissions listed or the handshake will fail.")
+
+                            # Use --no-browser for headless/remote server support
+                            try:
+                                scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
+                                result = subprocess.run(
+                                    ["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"],
+                                    check=False
+                                )
+                                console.print(f"[dim]gcloud exit code: {result.returncode}[/dim]")
+                            except Exception as e:
+                                console.print(f"[bold red]❌ Subprocess Error:[/bold red] {e}")
+                                console.input("\n[yellow]Press Enter to see details...[/yellow]")
+                            
+                            # Re-check after the command runs
+                            if adc_path.exists():
+                                console.print("[green]✅ Google Auth is now ready![/green]")
+                                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                                console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
+                            else:
+                                console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
+                                console.print(f"[dim]Checked path: {adc_path}[/dim]")
+                                console.input("\n[yellow]Press Enter to continue...[/yellow]")
+                        else:
+                            console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
+                    except (KeyboardInterrupt, EOFError):
+                        console.print("\n[yellow]Cancelled auth handshake.[/yellow]")
+                else:
+                    console.print("[green]✅ Google Auth is ready to use![/green]")
+                    config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                    console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
+                    
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[yellow]Cancelled auth selection.[/yellow]")
+
+    except Exception as e:
+        import traceback
+        console.print(f"[bold red]FATAL ERROR during auth setup:[/bold red] {e}")
+        console.print(traceback.format_exc())
+        console.input("\n[bold yellow]Critical failure. Press Enter to exit...[/bold yellow]")
 
 import webbrowser
 import urllib.parse
