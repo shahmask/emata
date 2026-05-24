@@ -12,6 +12,20 @@ SOURCE_DIR=$(cd "$(dirname "$TARGET_FILE")" && pwd)
 CURRENT_DIR="$(pwd)"
 PYTHON_BIN="$SOURCE_DIR/.venv/bin/python"
 
+# XSym detection (handles corrupted Seafile/Samba cross-OS synced symlinks)
+if [ -f "$PYTHON_BIN" ] && head -n 1 "$PYTHON_BIN" 2>/dev/null | grep -q "^XSym"; then
+    echo "⚠️  Warning: Corrupted macOS symlink detected at $PYTHON_BIN (Seafile/Samba sync collision)."
+    if [ -f "$HOME/.emata/.venv/bin/python" ] && ! head -n 1 "$HOME/.emata/.venv/bin/python" 2>/dev/null | grep -q "^XSym"; then
+        echo "🔄 Automatically falling back to isolated clean virtual environment at ~/.emata..."
+        PYTHON_BIN="$HOME/.emata/.venv/bin/python"
+        SOURCE_DIR="$HOME/.emata"
+    else
+        echo "❌ Error: No clean local virtual environment found."
+        echo "Please delete the synced .venv and run the installer again: curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh | bash"
+        exit 1
+    fi
+fi
+
 if [ ! -f "$PYTHON_BIN" ]; then
     echo "❌ Error: Virtual environment not found at $PYTHON_BIN"
     echo "Please run the installer again."
