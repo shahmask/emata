@@ -7,6 +7,16 @@ Whether you're just starting out or you're a seasoned pro, EMATA gives you a pro
 
 ---
 
+## ❓ Why EMATA?
+
+EMATA was created to solve specific frustrations with existing CLI agents:
+
+- **The Persistence Problem**: Most CLI agents die the moment you lose your SSH connection or close your laptop. EMATA uses a smart TMUX-based architecture to ensure your agent—and your full conversation context—stays alive until you explicitly close it.
+- **The Transition**: With `geminicli` approaching deprecation and newer alternatives like `antigravitycli` not yet being a cost-effective or suitable replacement for many workflows, EMATA provides a pragmatic, local-first alternative.
+- **Gemini-First**: Currently, EMATA **only supports Google Gemini models** (including the latest Reasoning models). It is designed to take full advantage of the Gemini 1.5/2.0+ architecture, including native tool-calling and long-context windows.
+
+---
+
 ## ✨ Core Capabilities
 
 - **🦾 Session Persistence**: Built on top of TMUX. If your connection drops or you close your laptop, EMATA stays alive. Just re-attach and your work is exactly where you left it.
