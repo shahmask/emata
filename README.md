@@ -20,7 +20,16 @@ Whether you're just starting out or you're a seasoned pro, EMATA gives you a pro
 
 ## 📦 Installation & Setup
 
-### Option 1: One-Liner (Recommended)
+### Option 1: Homebrew (macOS & Linux)
+This is the recommended way if you want Homebrew to manage updates for you.
+
+```bash
+brew tap shahmask/tap
+brew install --HEAD emata
+```
+
+### Option 2: One-Liner (Universal)
+If you don't use Homebrew, you can use this standalone installer.
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"
