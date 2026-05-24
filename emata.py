@@ -231,6 +231,44 @@ def handle_auth_setup(config: Config):
     except (KeyboardInterrupt, EOFError):
         console.print("\n[yellow]Cancelled auth change.[/yellow]")
 
+import webbrowser
+import urllib.parse
+import platform
+
+def handle_report_issue(config: Config):
+    """Gathers system info and opens GitHub issues page with a pre-filled template."""
+    console.print("\n[bold cyan]🐛 Report an Issue / Feedback[/bold cyan]")
+    console.print("This will open a browser window with your system details pre-filled.")
+    
+    # Gather non-sensitive system info
+    emata_version = "v1.0.1"
+    os_info = f"{platform.system()} {platform.release()}"
+    python_version = platform.python_version()
+    current_model = config.model
+    
+    issue_body = (
+        f"**System Information:**\n"
+        f"- EMATA Version: {emata_version}\n"
+        f"- OS: {os_info}\n"
+        f"- Python: {python_version}\n"
+        f"- Model: {current_model}\n\n"
+        f"**Description:**\n"
+        f"(Please describe the issue or feedback here...)\n"
+    )
+    
+    encoded_body = urllib.parse.quote(issue_body)
+    github_url = f"https://github.com/shahmask/emata/issues/new?body={encoded_body}"
+    
+    try:
+        confirm = console.input("\n[bold cyan]Open GitHub in browser? (Y/n): [/bold cyan]").strip().lower()
+        if confirm != 'n':
+            console.print("[bold green]🚀 Opening browser...[/bold green]")
+            webbrowser.open(github_url)
+        else:
+            console.print("[yellow]Cancelled. You can manually report at: https://github.com/shahmask/emata/issues[/yellow]")
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[yellow]Cancelled.[/yellow]")
+
 def main():
     args = parse_args()
     
@@ -354,6 +392,10 @@ def main():
                         console.print(f"[bold red]Error re-initializing agent:[/bold red] {e}")
                     continue
 
+                elif user_input.lower() == ":report":
+                    handle_report_issue(config)
+                    continue
+
                 elif user_input.lower().startswith(":model"):
                     parts = user_input.split(maxsplit=1)
                     if len(parts) < 2:
@@ -404,8 +446,10 @@ def main():
                         (":session", "List all concurrent EMATA sessions"),
                         (":change-model", "List and select a default model from the API"),
                         (":model <name>", "Switch active model for this session"),
-                        (":auth", "Toggle between API Key and Google Auth"),
+                        (":auth", "Switch between API Key and Google Auth"),
+                        (":report", "Report an issue or provide feedback"),
                         (":crazy", "Toggle Crazy Mode (ON = No safety prompts)"),
+
                         (":yolo", "Toggle YOLO Mode (ON = Full system access)"),
                         (":search", "Toggle Google Search grounding"),
                         (":mouse", "Toggle Mouse Mode (Turn OFF to copy text easily)"),
