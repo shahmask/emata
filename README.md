@@ -5,7 +5,9 @@ EMATA is a lightweight, no-bloat, Gemini-native terminal AI agent companion. It 
 
 > [!IMPORTANT]
 > **Built for Quota Efficiency & Long-Term Compatibility:**
-> EMATA acts as the ultimate drop-in replacement for the deprecated `geminicli`. Unlike resource-heavy developer agents that incinerate usage quotas, EMATA lets you target highly cost-effective, high-reasoning preview and workhorse models like **Gemini 3 Flash Preview**, **Gemini 3.1 Flash-Lite**, and **Gemini 3.5** with fine-grained thinking budgets (low/minimal thinking). Keep your automated workflows running fast, robustly, and within quota.
+> EMATA acts as the ultimate drop-in replacement for the deprecated `geminicli`. While heavy developer agents like **Antigravity** (especially *Antigravity Flash Medium*) can incinerate your usage quotas with complex, costly background reasoning loops, they also lack support for highly cost-effective models like **Gemini 3 Flash Preview**, **Gemini 3.1 Flash-Lite**, and **Gemini 3.5** configured with **low-thinking budgets**. 
+> 
+> EMATA bridges this gap perfectly, allowing you to run these exact high-reasoning, low-thinking models natively. Keep your automated workflows fast, lightweight, and within quota.
 
 ---
 
@@ -17,6 +19,7 @@ Standard conversational CLIs (like generic `gemini-cli`) are volatile and isolat
 *   **Directory-Level Multi-Tenancy**: Automatically partitions and persists conversation history by hashing the `PWD` (current working directory) and TMUX session name. Run independent concurrent sessions across different workspaces or within the same directory without cross-talk.
 *   **Deep Agentic Autonomy**: Not just a conversational chat: EMATA reads, writes, and creates files (with automatic `.bak` backups), searches with ripgrep, and runs non-interactive console commands.
 *   **High-Reasoning Gemini 3 Support**: Designed for the Gemini 3 ecosystem. Natively parses, flattens, and preserves **Thought Signatures** from advanced reasoning models, preventing capacity drops (503 errors).
+*   **Dual Authentication Flexibility**: Natively supports both **Google Auth (Application Default Credentials / `gcloud`)** and standard **Gemini API Key** authentication. Transition seamlessly using the `:auth` shell command.
 
 ---
 
