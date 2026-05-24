@@ -2,8 +2,21 @@
 # EMATA Central Launcher
 # This script handles the TMUX session management and history independent multi-tenancy.
 
-SOURCE_DIR="${EMATA_SOURCE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+# 1. RESOLVE TRUE PATH (Handles symlinks correctly)
+TARGET_FILE=$0
+while [ -L "$TARGET_FILE" ]; do
+    TARGET_FILE=$(readlink "$TARGET_FILE")
+done
+SOURCE_DIR=$(cd "$(dirname "$TARGET_FILE")" && pwd)
+
 CURRENT_DIR="$(pwd)"
+PYTHON_BIN="$SOURCE_DIR/.venv/bin/python"
+
+if [ ! -f "$PYTHON_BIN" ]; then
+    echo "❌ Error: Virtual environment not found at $PYTHON_BIN"
+    echo "Please run the installer again."
+    exit 1
+fi
 
 if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
     # Find matching sessions for this directory based on the @emata_pwd tmux option
@@ -93,7 +106,7 @@ if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
     fi
 
     # Create and attach
-    tmux new-session -d -s "$SESSION_NAME" -n "emata" "env TMUX_SESSION_NAME='$SESSION_NAME' '$SOURCE_DIR/.venv/bin/python' '$SOURCE_DIR/emata.py' $@; echo -e '\n[Process Exited]'; read"
+    tmux new-session -d -s "$SESSION_NAME" -n "emata" "env TMUX_SESSION_NAME='$SESSION_NAME' '$PYTHON_BIN' '$SOURCE_DIR/emata.py' $@; echo -e '\n[Process Exited]'; read"
     tmux set-option -t "$SESSION_NAME" @emata_pwd "$CURRENT_DIR"
     
     # SMOOTH SCROLLING: Configure tmux to scroll 1 line per mouse wheel notch

@@ -15,7 +15,7 @@ def log(msg):
             f.write(f"[{ts}] {msg}\n")
     except: pass
 
-log("--- EMATA STARTUP v1.0.12 ---")
+log("--- EMATA STARTUP v1.0.13 ---")
 
 try:
     from config import Config
