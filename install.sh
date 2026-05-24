@@ -78,7 +78,7 @@ fi
 if [ ! -f ~/.config/emata/config.yaml ]; then
     cat <<EOT > ~/.config/emata/config.yaml
 # EMATA Global Configuration
-model: "gemini-3.0-flash"
+model: "gemini-3-flash-preview"
 crazy_mode: $CRAZY_VAL
 yolo_mode: $YOLO_VAL
 search_enabled: true
