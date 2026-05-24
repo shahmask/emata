@@ -20,6 +20,17 @@ for cmd in git python3 tmux; do
     fi
 done
 
+# Optional: Google Cloud SDK Check (for Google Auth/ADC)
+if ! command -v gcloud &> /dev/null; then
+    echo -e "\n${BLUE}💡 Note: Google Cloud SDK (gcloud) not found.${NC}"
+    echo -e "This is only required if you want to use Google Auth (ADC) instead of an API Key."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        echo -e "To install it on macOS: ${GREEN}brew install --cask google-cloud-sdk${NC}"
+    else
+        echo -e "To install it: https://cloud.google.com/sdk/docs/install"
+    fi
+fi
+
 # 2. Setup Directory
 INSTALL_DIR="$HOME/.emata"
 if [ -d "$INSTALL_DIR" ]; then
