@@ -8,13 +8,14 @@ BOOT_LOG = os.path.expanduser("~/.emata/boot_debug.log")
 
 def log(msg):
     try:
+        # Simple print for immediate feedback
+        print(f"> {msg}")
         with open(BOOT_LOG, "a") as f:
             ts = datetime.datetime.now().strftime("%H:%M:%S")
             f.write(f"[{ts}] {msg}\n")
     except: pass
 
-log("\n--- STARTING EMATA (v1.0.12) ---")
-log(f"System PATH: {os.environ.get('PATH')}")
+log("--- EMATA STARTUP v1.0.12 ---")
 
 try:
     from config import Config
@@ -26,17 +27,16 @@ try:
     log("Imports successful.")
 except Exception as e:
     log(f"Import error: {e}")
-    print(f"\n[bold red]FATAL IMPORT ERROR:[/bold red] {e}")
-    print("Ensure you are running inside the virtual environment.")
+    print(f"\nFATAL IMPORT ERROR: {e}")
     input("Press Enter to exit...")
     sys.exit(1)
 
 def handle_auth_setup(config):
-    console.print("\n[bold cyan]🔐 Authentication Setup[/bold cyan]")
-    console.print("1. [bold]API Key[/bold]\n2. [bold]Google Auth (ADC)[/bold]")
+    console.print("\n[bold cyan]Authentication Setup[/bold cyan]")
+    console.print("1. API Key\n2. Google Auth (ADC)")
     
     choice = input("\nChoice (1/2): ").strip()
-    log(f"User selected choice: {choice}")
+    log(f"User choice: {choice}")
     
     if choice == "1":
         key = input("Enter GEMINI_API_KEY: ").strip()
@@ -45,17 +45,12 @@ def handle_auth_setup(config):
     
     elif choice == "2":
         try:
-            log("User chose Google Auth. Starting path search...")
-            # FIND THE ABSOLUTE PATH OF GCLOUD
+            log("Starting gcloud search...")
             gcloud_abs_path = shutil.which("gcloud")
-            log(f"shutil.which found gcloud at: {gcloud_abs_path}")
-            
-            # SEARCH COMMON MAC PATHS IF NOT FOUND
             sys_platform = platform.system()
-            log(f"Detected Platform: {sys_platform}")
             
             if not gcloud_abs_path and sys_platform == "Darwin":
-                log("Searching common Mac paths...")
+                log("Fallback search on Mac...")
                 search_paths = [
                     "/usr/local/bin/gcloud",
                     "/opt/homebrew/bin/gcloud",
@@ -64,74 +59,51 @@ def handle_auth_setup(config):
                 for p in search_paths:
                     if os.path.exists(p):
                         gcloud_abs_path = p
-                        log(f"Found gcloud in fallback search: {p}")
                         break
 
             if not gcloud_abs_path:
-                log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
-                console.print("\n[bold red]Error: Google Cloud SDK (gcloud) not found.[/bold red]")
+                log("GCLOUD MISSING")
+                console.print("\n[bold red]Error: Google Cloud SDK not found.[/bold red]")
                 
-                log("Printing install instructions...")
                 if sys_platform == "Darwin":
-                    console.print("\n[bold cyan]How to install on Mac:[/bold cyan]")
-                    console.print("Run: [green]brew install --cask google-cloud-sdk[/green]")
+                    console.print("\nHow to install on Mac:")
+                    console.print("Run: brew install --cask google-cloud-sdk")
                 else:
-                    console.print("\n[bold cyan]How to install:[/bold cyan]")
-                    console.print("1. Visit: https://cloud.google.com/sdk/docs/install")
-                    console.print("2. Follow the instructions for your OS.")
-                    console.print("3. Restart your terminal after installation.")
+                    console.print("\nHow to install:")
+                    console.print("Visit: https://cloud.google.com/sdk/docs/install")
                 
-                log("Waiting for user input at return-to-menu prompt...")
                 input("\nPress Enter to return to menu...")
-                log("Returning from handle_auth_setup after missing gcloud.")
                 return
 
-            # IF WE REACH HERE, gcloud_abs_path IS VALID
             try:
                 adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-                log(f"Checking for ADC file at: {adc_path}")
                 if not adc_path.exists():
-                    log("ADC file missing. Requesting handshake.")
+                    log("Handshake required.")
                     console.print("[yellow]Handshake required.[/yellow]")
                     if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
-                        log(f"Launching gcloud at: {gcloud_abs_path}")
-                        try:
-                            # USE THE ABSOLUTE PATH WE FOUND
-                            subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
-                            log("gcloud command finished successfully.")
-                        except Exception as e:
-                            log(f"Execution failed: {e}")
-                            console.print(f"[red]Execution error: {e}[/red]")
-                            input("Press Enter...")
+                        subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
                 
                 if adc_path.exists():
-                    log("ADC file found. Setting auth mode.")
                     config.update_env_file("EMATA_AUTH_MODE", "google_auth")
                     console.print("[green]Google Auth ready.[/green]")
                 else:
-                    log("ADC file still missing after attempt.")
-                    console.print("[red]Auth failed or cancelled.[/red]")
+                    console.print("[red]Auth failed.[/red]")
                     input("\nPress Enter...")
             except Exception as e:
-                log(f"Error during ADC check/login: {e}")
-                console.print(f"[red]Authentication error: {e}[/red]")
+                log(f"ADC Error: {e}")
                 input("Press Enter...")
         except Exception as e:
-            log(f"Error during gcloud path resolution: {e}")
-            console.print(f"[red]Path resolution error: {e}[/red]")
+            log(f"Search Error: {e}")
             input("Press Enter...")
 
 def main():
     config = Config()
-    
-    # LOOP UNTIL AUTH IS VALID OR USER EXITS
     while not config.check_auth():
         handle_auth_setup(config)
         if not config.check_auth():
-            console.print("\n[yellow]⚠️  Authentication is still not configured.[/yellow]")
-            choice = input("Retry setup? (Y/n) or type 'exit': ").lower().strip()
+            console.print("\n[yellow]Auth not configured.[/yellow]")
+            choice = input("Retry? (Y/n) or 'exit': ").lower().strip()
             if choice == "exit" or choice == "n":
-                console.print("[red]Exiting...[/red]")
                 sys.exit(0)
 
     try:
@@ -151,16 +123,15 @@ def main():
                 if "text" in chunk: console.print(chunk["text"], end="")
             console.print()
     except Exception as e:
-        log(f"Main Loop Error: {e}")
-        console.print(f"\n[bold red]FATAL ERROR:[/bold red] {e}")
+        log(f"Loop Error: {e}")
         traceback.print_exc()
-        input("\nPress Enter to exit...")
+        input("Press Enter to exit...")
 
 if __name__ == "__main__":
     try:
         main()
     except Exception:
         err = traceback.format_exc()
-        log(f"FATAL:\n{err}")
-        print(f"\nCRITICAL FAILURE:\n{err}")
+        log(f"FATAL: {err}")
+        print(f"\nCRITICAL FAILURE: {err}")
         input("Press Enter to exit...")
