@@ -23,13 +23,22 @@ done
 # 2. Setup Directory
 INSTALL_DIR="$HOME/.emata"
 if [ -d "$INSTALL_DIR" ]; then
-    echo -e "${BLUE}Updating existing EMATA installation...${NC}"
-    cd "$INSTALL_DIR" && git pull
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        echo -e "${BLUE}Updating existing EMATA installation...${NC}"
+        cd "$INSTALL_DIR" && git pull
+    else
+        echo -e "${RED}Warning: $INSTALL_DIR exists but is not a git repository.${NC}"
+        echo -e "${BLUE}Re-installing to $INSTALL_DIR...${NC}"
+        rm -rf "$INSTALL_DIR"
+        git clone https://github.com/shahmask/emata.git "$INSTALL_DIR"
+        cd "$INSTALL_DIR"
+    fi
 else
     echo -e "${BLUE}Cloning EMATA to $INSTALL_DIR...${NC}"
-    git clone https://github.com/shaheenaskari/emata.git "$INSTALL_DIR"
+    git clone https://github.com/shahmask/emata.git "$INSTALL_DIR"
     cd "$INSTALL_DIR"
 fi
+
 
 # 3. Virtual Environment
 echo -e "${BLUE}Setting up virtual environment...${NC}"
