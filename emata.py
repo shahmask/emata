@@ -212,6 +212,7 @@ def handle_auth_setup(config: Config):
                         # Use --no-browser for headless/remote server support
                         scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
                         subprocess.run(["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"])
+                        
                         # Re-check after the command runs
                         if adc_path.exists():
                             console.print("[green]✅ Google Auth is now ready![/green]")

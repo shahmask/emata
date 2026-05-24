@@ -97,4 +97,3 @@ fi
 
 echo -e "${GREEN}✅ Installation Complete!${NC}"
 echo -e "You can now run EMATA from any directory by typing: ${GREEN}emata${NC}"
-echo -e "Don't forget to set your ${BLUE}GEMINI_API_KEY${NC} in ${BLUE}~/.config/emata/config.yaml${NC}"
