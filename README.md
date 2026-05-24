@@ -1,23 +1,73 @@
-# 🛰️ EMATA (Maintenance)
+# 🛰️ EMATA — The Enduring Multi-Agent Terminal App
+> **Persistent, Workspace-Aware, and Agentic Terminal AI for Modern Engineering.**
 
-### Status: Coming Soon 🚧
-
-EMATA is currently undergoing architectural refinement to improve its multi-platform authentication flow. 
-
-**Public installation is temporarily disabled.**
-
-We are working on resolving a path-resolution issue specifically affecting Google Cloud SDK integration on macOS. We expect to be back online with a more robust v1.1.0 release shortly.
+EMATA is a lightweight, no-bloat, Gemini-native terminal AI agent companion. It is engineered specifically for real-world engineering environments, solving the volatility issues of standard CLI wrappers while packing robust agentic autonomy.
 
 ---
 
-## ❓ What is EMATA?
-EMATA (Enduring Multi-Agent Terminal App) is a persistent AI terminal agent companion built for developers, homelab admins, and power users. 
+## ❓ Why EMATA?
 
-- **Indestructible Sessions**: Stays alive across SSH drops and laptop reboots.
-- **Gemini-First**: Optimized for Gemini 1.5/2.0/3.0+ architecture.
-- **Drop-in Replacement**: Supports the `gemini.md` paradigm out of the box.
+Standard conversational CLIs (like generic `gemini-cli`) are volatile and isolated. EMATA is designed to be **indestructible** and **integrated**:
+
+*   **Indestructible TMUX-Powered Sessions**: Runs inside a backgrounded, persistent TMUX session. If your laptop lid closes, your SSH connection drops, or your network times out, EMATA remains exactly where you left it. Simply type `emata` to re-attach.
+*   **Directory-Level Multi-Tenancy**: Automatically partitions and persists conversation history by hashing the `PWD` (current working directory) and TMUX session name. Run independent concurrent sessions across different workspaces or within the same directory without cross-talk.
+*   **Deep Agentic Autonomy**: Not just a conversational chat: EMATA reads, writes, and creates files (with automatic `.bak` backups), searches with ripgrep, and runs non-interactive console commands.
+*   **High-Reasoning Gemini 3 Support**: Designed for the Gemini 3 ecosystem. Natively parses, flattens, and preserves **Thought Signatures** from advanced reasoning models, preventing capacity drops (503 errors).
+
+---
+
+## 🚀 Advanced CLI Features
+
+EMATA excels both as an **interactive agent shell** and as a **flexible, general-purpose CLI tool**.
+
+### 1. Single-Shot & Standard Piping (Direct Mode)
+Pipe files, standard input, or logs directly into EMATA for instant answers without opening the interactive loop:
+```bash
+# Pipe code/logs for explanations
+cat server.log | emata "explain this stack trace and suggest a fix"
+
+# Run quick direct queries
+emata "write a python function to compute prime numbers" > primes.py
+```
+
+### 2. Context Hydration Flags (`-f` / `--file` and `-d` / `--dir`)
+Instantly inject files or directories as structured system prompt context on startup:
+```bash
+# Hydrate specific code files
+emata -f main.py -f utils.py "refactor both to use async handlers"
+
+# Hydrate directory structure
+emata -d src/ "find where the active routes are defined"
+```
+
+### 3. Active Workspace Git-Diff Awareness (`--diff`)
+Provide the agent with immediate context of what you are working on by attaching your unstaged git changes automatically:
+```bash
+emata --diff "review my active changes for security issues"
+```
+
+### 4. Configuration Override Toggles
+Inject dynamic overrides directly into the terminal invocation:
+- `--model <name>`: Switch active model (e.g., `--model gemini-3.5-pro`)
+- `--search` / `--no-search`: Toggle Google Search grounding
+- `--yolo` / `--safe`: Toggle workspace guardrails
+- `--crazy`: Bypass safety confirmation prompts for autonomous tool executions
+
+---
+
+## 📦 One-Line Installation
+
+Run the installer directly on your Mac or Linux terminal. On Apple Silicon M-series Macs, EMATA installs seamlessly without requiring `sudo` by integration with the Homebrew path:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"
+```
+
+### Next Steps & Shell Commands
+*   **Interactive Loops**: Start/Attach sessions with `emata` (standalone) or `emata --no-tmux` (direct loop).
+*   **Upgrade EMATA**: Keep everything updated and stabilized by running `:upgrade` directly inside the agent shell.
 
 ---
 
 ## 📄 License
-Distributed under the **MIT License**.
+EMATA is open-source software distributed under the **MIT License**.
