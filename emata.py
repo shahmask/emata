@@ -38,6 +38,8 @@ def handle_auth_setup(config):
         
     elif choice == "2":
         gcloud_path = shutil.which("gcloud")
+        log(f"shutil.which('gcloud') returned: {gcloud_path}")
+        
         if not gcloud_path:
             console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
             console.print("Google Auth requires the gcloud SDK to be installed on your system.")
@@ -57,11 +59,17 @@ def handle_auth_setup(config):
             console.print("[yellow]⚠️  Handshake required (Application Default Credentials missing).[/yellow]")
             if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
                 console.print("\n[bold yellow]🚀 Launching gcloud...[/bold yellow]")
+                console.print(f"[dim]Using SDK at: {gcloud_path}[/dim]")
                 console.print("[dim]Follow the instructions in your browser and check all boxes.[/dim]\n")
                 try:
-                    subprocess.run(["gcloud", "auth", "application-default", "login", "--no-browser"])
+                    # USE ABSOLUTE PATH - Much safer
+                    subprocess.run([gcloud_path, "auth", "application-default", "login", "--no-browser"])
+                except FileNotFoundError:
+                    console.print(f"[bold red]❌ System Error:[/bold red] Found gcloud at {gcloud_path} but could not execute it.")
+                    input("\nPress Enter...")
                 except Exception as e:
-                    console.print(f"[red]Execution error: {e}[/red]")
+                    console.print(f"[bold red]❌ Execution error:[/bold red] {e}")
+                    input("\nPress Enter...")
         
         if adc_path.exists():
             config.update_env_file("EMATA_AUTH_MODE", "google_auth")
