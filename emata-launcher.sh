@@ -106,7 +106,7 @@ if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
     fi
 
     # Create and attach
-    tmux new-session -d -s "$SESSION_NAME" -n "emata" "env TMUX_SESSION_NAME='$SESSION_NAME' '$PYTHON_BIN' '$SOURCE_DIR/emata.py' $@; echo -e '\n[Process Exited]'; read"
+    tmux new-session -d -s "$SESSION_NAME" -n "emata" "bash -c 'env TMUX_SESSION_NAME=\"$SESSION_NAME\" \"$PYTHON_BIN\" \"$SOURCE_DIR/emata.py\" $@; echo -e \"\\n[Process Exited]\"; read'"
     tmux set-option -t "$SESSION_NAME" @emata_pwd "$CURRENT_DIR"
     
     # SMOOTH SCROLLING: Configure tmux to scroll 1 line per mouse wheel notch

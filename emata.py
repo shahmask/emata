@@ -8,8 +8,6 @@ BOOT_LOG = os.path.expanduser("~/.emata/boot_debug.log")
 
 def log(msg):
     try:
-        # Simple print for immediate feedback
-        print(f"> {msg}")
         with open(BOOT_LOG, "a") as f:
             ts = datetime.datetime.now().strftime("%H:%M:%S")
             f.write(f"[{ts}] {msg}\n")
