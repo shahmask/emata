@@ -60,6 +60,30 @@ Inject dynamic overrides directly into the terminal invocation:
 - `--yolo` / `--safe`: Toggle workspace guardrails
 - `--crazy`: Bypass safety confirmation prompts for autonomous tool executions
 
+## 🔰 Beginner's Guide & Fast Onboarding
+
+If you are new to working with terminal tools, command-line interfaces (CLIs), or the Google Gemini API, don't worry! EMATA is built to be simple, self-configuring, and highly accessible.
+
+### 1. What do I need before installing?
+You only need two standard tools installed on your computer:
+* **Python (version 3.9 or higher)**: The programming language EMATA runs on.
+* **Git**: The tool used to fetch and update EMATA's source code automatically.
+* *Need to check if you have them?* Open your terminal application (e.g., Terminal on Mac) and type `python3 --version` and `git --version`.
+
+### 2. Getting your Gemini API Key
+To communicate with the Gemini models, you need an API key. It takes 1 minute to get one for free:
+1. Go to [Google AI Studio](https://aistudio.google.com/).
+2. Log in with your standard Google Account.
+3. Click the blue **Get API Key** button at the top left.
+4. Copy the key (it starts with `AIzaSy...`). Keep it safe!
+
+### 3. Installing & First Run
+Simply copy the installer command below, paste it into your terminal, and press **Enter**. The installer will:
+1. Fetch the codebase automatically.
+2. Build an isolated "virtual environment" (meaning it installs the exact packages EMATA needs without cluttering your system settings).
+3. Set up the globally executable `emata` command.
+4. Prompt you interactively to configure your API Key or connect via Google Auth.
+
 ---
 
 ## 📦 One-Line Installation
@@ -76,5 +100,9 @@ bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/inst
 
 ---
 
-## 📄 License
+## 📄 License & Community
 EMATA is open-source software distributed under the **MIT License**.
+
+We believe in making the open-source AI community a welcoming and secure place. Check out our guidance:
+* **[Contributing Guide](file:///Volumes/shaheen/projects/emata/CONTRIBUTING.md)**: Fork the code and learn how to contribute.
+* **[Security & Privacy Policy](file:///Volumes/shaheen/projects/emata/SECURITY.md)**: Learn how we keep your API keys and local data safe.
