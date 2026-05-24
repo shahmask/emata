@@ -18,6 +18,12 @@ if [ ! -f "$PYTHON_BIN" ]; then
     exit 1
 fi
 
+if [ "$1" == "--no-tmux" ]; then
+    shift
+    echo "🛰️  Starting EMATA in Direct Mode (No Tmux)..."
+    exec "$PYTHON_BIN" "$SOURCE_DIR/emata.py" "$@"
+fi
+
 if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
     # Find matching sessions for this directory based on the @emata_pwd tmux option
     MATCHING_SESSIONS=$(tmux list-sessions -F '#{session_name} #{session_created} #{session_attached} #{@emata_pwd}' 2>/dev/null | grep -E " ${CURRENT_DIR}$")
@@ -52,12 +58,16 @@ if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
         echo "  [1-$NUM_SESSIONS] Reconnect/Join a session above"
         echo "  [k] Kill an existing session"
         echo "  [n] Start a BRAND NEW independent EMATA session"
+        echo "  [d] Start in DIRECT MODE (No Tmux/Persistent session)"
         echo "  [q] Exit"
         echo ""
         read -p "Select an option (default: n): " OPTION
         OPTION=${OPTION:-n}
         
-        if [[ "$OPTION" =~ ^[0-9]+$ ]] && [ "$OPTION" -ge 1 ] && [ "$OPTION" -le "$NUM_SESSIONS" ]; then
+        if [ "$OPTION" = "d" ]; then
+            echo "🛰️  Starting EMATA in Direct Mode..."
+            exec "$PYTHON_BIN" "$SOURCE_DIR/emata.py" "$@"
+        elif [[ "$OPTION" =~ ^[0-9]+$ ]] && [ "$OPTION" -ge 1 ] && [ "$OPTION" -le "$NUM_SESSIONS" ]; then
             TARGET_SESSION="${SESS_NAMES[$OPTION]}"
             echo "🔄 Reconnecting to '$TARGET_SESSION'..."
             exec tmux attach-session -t "$TARGET_SESSION"
@@ -106,31 +116,34 @@ if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
     fi
 
     # Create session (detached)
-    tmux new-session -d -s "$SESSION_NAME" -n "emata"
-    
-    # Send setup and start commands
-    tmux send-keys -t "$SESSION_NAME" "export TMUX_SESSION_NAME='$SESSION_NAME'" C-m
-    tmux send-keys -t "$SESSION_NAME" "cd '$CURRENT_DIR'" C-m
-    tmux send-keys -t "$SESSION_NAME" "'$PYTHON_BIN' '$SOURCE_DIR/emata.py' $@" C-m
-    tmux send-keys -t "$SESSION_NAME" "echo -e '\n[Process Exited]'; read" C-m
-    
-    tmux set-option -t "$SESSION_NAME" @emata_pwd "$CURRENT_DIR"
-    
-    # SMOOTH SCROLLING: Configure tmux to scroll 1 line per mouse wheel notch
-    tmux bind-key -T copy-mode WheelUpPane send-keys -X scroll-up
-    tmux bind-key -T copy-mode WheelDownPane send-keys -X scroll-down
-    tmux bind-key -T copy-mode-vi WheelUpPane send-keys -X scroll-up
-    tmux bind-key -T copy-mode-vi WheelDownPane send-keys -X scroll-down
+    if tmux new-session -d -s "$SESSION_NAME" -n "emata" 2>/dev/null; then
+        # Send setup and start commands
+        tmux send-keys -t "$SESSION_NAME" "export TMUX_SESSION_NAME='$SESSION_NAME'" C-m
+        tmux send-keys -t "$SESSION_NAME" "cd '$CURRENT_DIR'" C-m
+        tmux send-keys -t "$SESSION_NAME" "'$PYTHON_BIN' '$SOURCE_DIR/emata.py' $@" C-m
+        tmux send-keys -t "$SESSION_NAME" "echo -e '\n[Process Exited]'; read" C-m
+        
+        tmux set-option -t "$SESSION_NAME" @emata_pwd "$CURRENT_DIR"
+        
+        # SMOOTH SCROLLING: Configure tmux to scroll 1 line per mouse wheel notch
+        tmux bind-key -T copy-mode WheelUpPane send-keys -X scroll-up
+        tmux bind-key -T copy-mode WheelDownPane send-keys -X scroll-down
+        tmux bind-key -T copy-mode-vi WheelUpPane send-keys -X scroll-up
+        tmux bind-key -T copy-mode-vi WheelDownPane send-keys -X scroll-down
 
-    # CLIPBOARD INTEGRATION: Use OSC 52 to sync tmux buffer with system clipboard
-    tmux set-option -t "$SESSION_NAME" set-clipboard on
-    # Automatically copy mouse selection to system clipboard on release
-    tmux bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
-    tmux bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
+        # CLIPBOARD INTEGRATION: Use OSC 52 to sync tmux buffer with system clipboard
+        tmux set-option -t "$SESSION_NAME" set-clipboard on
+        # Automatically copy mouse selection to system clipboard on release
+        tmux bind-key -T copy-mode MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
+        tmux bind-key -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-and-cancel
 
-    exec tmux attach-session -t "$SESSION_NAME"
+        exec tmux attach-session -t "$SESSION_NAME"
+    else
+        echo "⚠️  Tmux session creation failed. Falling back to Direct Mode..."
+        exec "$PYTHON_BIN" "$SOURCE_DIR/emata.py" "$@"
+    fi
 
 else
     # Fallback to direct execution
-    exec "$SOURCE_DIR/.venv/bin/python" "$SOURCE_DIR/emata.py" "$@"
+    exec "$PYTHON_BIN" "$SOURCE_DIR/emata.py" "$@"
 fi
