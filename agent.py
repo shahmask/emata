@@ -15,13 +15,17 @@ class Agent:
     def __init__(self, config):
         self.config = config
         
-        # Support for API Key or Google Auth (ADC)
-        if config.auth_mode == "google_auth":
-            self.client = genai.Client()
-            logger.info("Agent initialized using Google Auth (ADC)")
-        else:
-            self.client = genai.Client(api_key=config.api_key)
-            logger.info("Agent initialized using API Key")
+        try:
+            # Support for API Key or Google Auth (ADC)
+            if config.auth_mode == "google_auth":
+                self.client = genai.Client()
+                logger.info("Agent initialized using Google Auth (ADC)")
+            else:
+                self.client = genai.Client(api_key=config.api_key)
+                logger.info("Agent initialized using API Key")
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini Client: {e}")
+            raise RuntimeError(f"Authentication Failure: {e}. Try running :auth to reconfigure.")
             
         self.history = []
         self.session_dir = os.path.expanduser("~/.emata/sessions")
