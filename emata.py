@@ -33,11 +33,19 @@ def handle_auth_setup(config):
     console.print("\n[bold cyan]Authentication Setup[/bold cyan]")
     console.print("1. API Key\n2. Google Auth (ADC)")
     
-    choice = input("\nChoice (1/2): ").strip()
+    try:
+        choice = input("\nChoice (1/2): ").strip()
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[yellow]Setup cancelled.[/yellow]")
+        return
     log(f"User choice: {choice}")
     
     if choice == "1":
-        key = input("Enter GEMINI_API_KEY: ").strip()
+        try:
+            key = input("Enter GEMINI_API_KEY: ").strip()
+        except (KeyboardInterrupt, EOFError):
+            console.print("\n[yellow]Cancelled.[/yellow]")
+            return
         if key: config.update_env_file("GEMINI_API_KEY", key)
         config.update_env_file("EMATA_AUTH_MODE", "api_key")
     
@@ -70,7 +78,10 @@ def handle_auth_setup(config):
                     console.print("\nHow to install:")
                     console.print("Visit: https://cloud.google.com/sdk/docs/install")
                 
-                input("\nPress Enter to return to menu...")
+                try:
+                    input("\nPress Enter to return to menu...")
+                except (KeyboardInterrupt, EOFError):
+                    pass
                 return
 
             try:
@@ -78,7 +89,11 @@ def handle_auth_setup(config):
                 if not adc_path.exists():
                     log("Handshake required.")
                     console.print("[yellow]Handshake required.[/yellow]")
-                    if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
+                    try:
+                        run_login = input("Run 'gcloud login' now? (y/N): ").lower() == "y"
+                    except (KeyboardInterrupt, EOFError):
+                        run_login = False
+                    if run_login:
                         subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
                 
                 if adc_path.exists():
@@ -86,13 +101,22 @@ def handle_auth_setup(config):
                     console.print("[green]Google Auth ready.[/green]")
                 else:
                     console.print("[red]Auth failed.[/red]")
-                    input("\nPress Enter...")
+                    try:
+                        input("\nPress Enter...")
+                    except (KeyboardInterrupt, EOFError):
+                        pass
             except Exception as e:
                 log(f"ADC Error: {e}")
-                input("Press Enter...")
+                try:
+                    input("Press Enter...")
+                except (KeyboardInterrupt, EOFError):
+                    pass
         except Exception as e:
             log(f"Search Error: {e}")
-            input("Press Enter...")
+            try:
+                input("Press Enter...")
+            except (KeyboardInterrupt, EOFError):
+                pass
 
 def main():
     config = Config()
@@ -100,7 +124,11 @@ def main():
         handle_auth_setup(config)
         if not config.check_auth():
             console.print("\n[yellow]Auth not configured.[/yellow]")
-            choice = input("Retry? (Y/n) or 'exit': ").lower().strip()
+            try:
+                choice = input("Retry? (Y/n) or 'exit': ").lower().strip()
+            except (KeyboardInterrupt, EOFError):
+                console.print("\n[yellow]Exiting...[/yellow]")
+                sys.exit(0)
             if choice == "exit" or choice == "n":
                 sys.exit(0)
 
@@ -108,7 +136,15 @@ def main():
         agent = Agent(config)
         console.print(Panel(Text("🛰️ EMATA Online", style="bold cyan"), border_style="cyan"))
         while True:
-            user_input = input("\ngagent > ").strip()
+            try:
+                user_input = input("\ngagent > ").strip()
+            except KeyboardInterrupt:
+                print()
+                continue
+            except EOFError:
+                console.print("\n[yellow]Exiting...[/yellow]")
+                break
+                
             if user_input.lower() in [":exit", ":quit"]: break
             if not user_input: continue
             if user_input.lower() == ":auth":
@@ -117,13 +153,21 @@ def main():
                 continue
             
             print("Working...", end="\r")
-            for chunk in agent.send_message_stream(user_input):
-                if "text" in chunk: console.print(chunk["text"], end="")
-            console.print()
+            try:
+                for chunk in agent.send_message_stream(user_input):
+                    if "text" in chunk: console.print(chunk["text"], end="")
+                console.print()
+            except KeyboardInterrupt:
+                console.print("\n[yellow]Operation interrupted by user.[/yellow]")
+            except Exception as e:
+                console.print(f"\n[red]Error executing request: {e}[/red]")
     except Exception as e:
         log(f"Loop Error: {e}")
         traceback.print_exc()
-        input("Press Enter to exit...")
+        try:
+            input("Press Enter to exit...")
+        except (KeyboardInterrupt, EOFError):
+            pass
 
 if __name__ == "__main__":
     try:
@@ -132,4 +176,7 @@ if __name__ == "__main__":
         err = traceback.format_exc()
         log(f"FATAL: {err}")
         print(f"\nCRITICAL FAILURE: {err}")
-        input("Press Enter to exit...")
+        try:
+            input("Press Enter to exit...")
+        except (KeyboardInterrupt, EOFError):
+            pass

@@ -127,13 +127,8 @@ if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
         echo "🚀 Starting first EMATA session in this directory ('$SESSION_NAME')..."
     fi
 
-    # Create session (detached)
-    if tmux new-session -d -s "$SESSION_NAME" -n "emata" 2>/dev/null; then
-        # Send setup and start commands
-        tmux send-keys -t "$SESSION_NAME" "export TMUX_SESSION_NAME='$SESSION_NAME'" C-m
-        tmux send-keys -t "$SESSION_NAME" "cd '$CURRENT_DIR'" C-m
-        tmux send-keys -t "$SESSION_NAME" "'$PYTHON_BIN' '$SOURCE_DIR/emata.py' $@" C-m
-        tmux send-keys -t "$SESSION_NAME" "echo -e '\n[Process Exited]'; read" C-m
+    # Create session (detached) running the python script natively inside bash
+    if tmux new-session -d -s "$SESSION_NAME" -n "emata" "bash -c 'export TMUX_SESSION_NAME=\"\$1\"; cd \"\$2\"; shift 2; \"\$0\" \"\$@\"; echo -e \"\n[Process Exited]\"; read' \"$PYTHON_BIN\" \"$SESSION_NAME\" \"$CURRENT_DIR\" \"$SOURCE_DIR/emata.py\" \"\$@\"" 2>/dev/null; then
         
         tmux set-option -t "$SESSION_NAME" @emata_pwd "$CURRENT_DIR"
         
