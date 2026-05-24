@@ -210,8 +210,16 @@ def handle_auth_setup(config: Config):
                         console.print("for the permissions listed or the handshake will fail.")
 
                         # Use --no-browser for headless/remote server support
-                        scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
-                        subprocess.run(["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"])
+                        try:
+                            scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
+                            result = subprocess.run(
+                                ["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"],
+                                check=False
+                            )
+                            console.print(f"[dim]gcloud exit code: {result.returncode}[/dim]")
+                        except Exception as e:
+                            console.print(f"[bold red]❌ Subprocess Error:[/bold red] {e}")
+                            console.input("\n[yellow]Press Enter to see details...[/yellow]")
                         
                         # Re-check after the command runs
                         if adc_path.exists():
@@ -220,6 +228,8 @@ def handle_auth_setup(config: Config):
                             console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
                         else:
                             console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
+                            console.print(f"[dim]Checked path: {adc_path}[/dim]")
+                            console.input("\n[yellow]Press Enter to continue (app may crash if auth is missing)...[/yellow]")
                     else:
                         console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
                 except (KeyboardInterrupt, EOFError):
@@ -310,8 +320,12 @@ def main():
     try:
         agent = Agent(config)
     except Exception as e:
+        import traceback
         logger.exception("Initialization Error: Could not start agent")
         console.print(f"[bold red]Initialization Error:[/bold red] Could not start agent: {e}")
+        console.print("-" * 30)
+        console.print(traceback.format_exc())
+        console.input("\n[bold yellow]The application crashed during startup. Press Enter to exit...[/bold yellow]")
         sys.exit(1)
 
     show_welcome_banner(config, debug=args.debug)
