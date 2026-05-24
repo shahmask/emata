@@ -169,7 +169,16 @@ def set_tmux_mouse(state: str):
 
 def handle_auth_setup(config: Config):
     """Prompts the user to configure authentication (API Key or Google Auth)."""
+    debug_log = os.path.expanduser("~/.emata/debug_auth.log")
+    
+    def log_debug(msg):
+        with open(debug_log, "a") as f:
+            f.write(f"{msg}\n")
+    
     try:
+        os.makedirs(os.path.dirname(debug_log), exist_ok=True)
+        log_debug("\n--- Starting Auth Setup ---")
+        
         console.print("\n[bold cyan]🔐 Authentication Setup:[/bold cyan]")
         console.print(f"  Current Mode: [yellow]{config.auth_mode}[/yellow]")
         console.print("-" * 30)
@@ -177,40 +186,46 @@ def handle_auth_setup(config: Config):
         console.print("  2. [bold]Google Auth[/bold] (Enterprise, uses your gcloud session)")
         
         try:
-            choice = console.input("\n[bold cyan]Select auth mode (1/2 or Enter to cancel): [/bold cyan]").strip()
+            log_debug("Waiting for user choice...")
+            # Use raw input to bypass any Rich/Readline interference
+            choice = input("\nSelect auth mode (1/2 or Enter to cancel): ").strip()
+            log_debug(f"User selected: '{choice}'")
+            
             if choice == "1":
-                new_key = console.input("[bold cyan]Enter your GEMINI_API_KEY (leave blank to keep current): [/bold cyan]").strip()
+                new_key = input("Enter your GEMINI_API_KEY (leave blank to keep current): ").strip()
                 if new_key:
                     config.update_env_file("GEMINI_API_KEY", new_key)
                 config.update_env_file("EMATA_AUTH_MODE", "api_key")
                 console.print("[bold green]✓ Auth mode set to API Key.[/bold green]")
+                log_debug("API Key mode configured.")
             
             elif choice == "2":
-                # Perform diagnostics for Google Auth
+                import shutil
+                log_debug("Starting Choice 2 (Google Auth)")
                 console.print("\n[bold yellow]🔍 Checking Google Cloud environment...[/bold yellow]")
                 
-                # Check for gcloud in a more robust way
-                try:
-                    res = subprocess.run(["gcloud", "--version"], capture_output=True, text=True)
-                    has_gcloud = res.returncode == 0
-                except FileNotFoundError:
-                    has_gcloud = False
+                has_gcloud = shutil.which("gcloud") is not None
+                log_debug(f"Has gcloud: {has_gcloud}")
                 
                 adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
                 has_adc = adc_path.exists()
+                log_debug(f"Has ADC file: {has_adc} (Path: {adc_path})")
                 
                 if not has_gcloud:
+                    log_debug("Error: gcloud not found")
                     console.print("[red]❌ Error: 'gcloud' CLI not found.[/red]")
                     console.print("[dim]Please install it first: https://cloud.google.com/sdk/docs/install[/dim]")
-                    console.input("\n[yellow]Press Enter to continue...[/yellow]")
+                    input("\nPress Enter to continue...")
                 elif not has_adc:
+                    log_debug("ADC missing, starting handshake")
                     console.print("[yellow]⚠️  Handshake required![/yellow]")
                     console.print("Your gcloud session is active, but Application Default Credentials (ADC) are missing.")
                     console.print("\n[bold cyan]To fix this, run this command in your terminal:[/bold cyan]")
                     console.print(Panel("[white]gcloud auth application-default login[/white]", border_style="green"))
                     
                     try:
-                        run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
+                        run_it = input("\nWould you like to run this command now? (y/N): ").strip().lower()
+                        log_debug(f"User run_it: '{run_it}'")
                         if run_it == 'y':
                             console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
                             console.print("[bold red]⚠️  IMPORTANT:[/bold red] Copy the URL below into your local browser.")
@@ -218,43 +233,53 @@ def handle_auth_setup(config: Config):
                             console.print("for the permissions listed or the handshake will fail.")
 
                             # Use --no-browser for headless/remote server support
+                            log_debug("Executing gcloud subprocess...")
                             try:
                                 scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
                                 result = subprocess.run(
                                     ["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"],
                                     check=False
                                 )
+                                log_debug(f"gcloud finished with exit code: {result.returncode}")
                                 console.print(f"[dim]gcloud exit code: {result.returncode}[/dim]")
-                            except Exception as e:
-                                console.print(f"[bold red]❌ Subprocess Error:[/bold red] {e}")
-                                console.input("\n[yellow]Press Enter to see details...[/yellow]")
+                            except Exception as sub_e:
+                                log_debug(f"Subprocess Exception: {sub_e}")
+                                console.print(f"[bold red]❌ Subprocess Error:[/bold red] {sub_e}")
+                                input("\nPress Enter to see details...")
                             
                             # Re-check after the command runs
                             if adc_path.exists():
+                                log_debug("Handshake success: ADC file created.")
                                 console.print("[green]✅ Google Auth is now ready![/green]")
                                 config.update_env_file("EMATA_AUTH_MODE", "google_auth")
                                 console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
                             else:
+                                log_debug("Handshake failed: ADC file still missing.")
                                 console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
                                 console.print(f"[dim]Checked path: {adc_path}[/dim]")
-                                console.input("\n[yellow]Press Enter to continue...[/yellow]")
+                                input("\nPress Enter to continue...")
                         else:
+                            log_debug("User declined handshake.")
                             console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
                     except (KeyboardInterrupt, EOFError):
+                        log_debug("Handshake prompt interrupted.")
                         console.print("\n[yellow]Cancelled auth handshake.[/yellow]")
                 else:
+                    log_debug("Google Auth already ready.")
                     console.print("[green]✅ Google Auth is ready to use![/green]")
                     config.update_env_file("EMATA_AUTH_MODE", "google_auth")
                     console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
                     
         except (KeyboardInterrupt, EOFError):
+            log_debug("Choice prompt interrupted.")
             console.print("\n[yellow]Cancelled auth selection.[/yellow]")
 
     except Exception as e:
         import traceback
+        log_debug(f"CRITICAL EXCEPTION: {e}\n{traceback.format_exc()}")
         console.print(f"[bold red]FATAL ERROR during auth setup:[/bold red] {e}")
         console.print(traceback.format_exc())
-        console.input("\n[bold yellow]Critical failure. Press Enter to exit...[/bold yellow]")
+        input("\nCritical failure. Press Enter to exit...")
 
 import webbrowser
 import urllib.parse
