@@ -43,5 +43,6 @@ A lightweight, no-bloat, Gemini-native terminal agent built for real-world engin
 
 ## 🛠️ Maintenance Notes
 *   Source is located at `~/projects/emata`.
+*   GitHub Repository: `https://github.com/shahmask/emata`
 *   Global binary linked at `/usr/local/bin/emata`.
 *   Config lives at `~/.config/emata/config.yaml`.
