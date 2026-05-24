@@ -82,27 +82,23 @@ def handle_auth_setup(config):
                 
                 input("\nPress Enter to return to menu...")
                 return
-        except Exception as e:
-            log(f"Error during gcloud search: {e}")
-            console.print(f"[red]Path resolution error: {e}[/red]")
-            input("Press Enter...")
-            return
 
-        try:
-            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-            log(f"Checking for ADC file at: {adc_path}")
-            if not adc_path.exists():
-                console.print("[yellow]⚠️  Handshake required.[/yellow]")
-                if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
-                    log(f"Launching gcloud at: {gcloud_abs_path}")
-                    try:
-                        # PASS THE ABSOLUTE PATH DIRECTLY
-                        subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
-                        log("gcloud command finished successfully.")
-                    except Exception as e:
-                        log(f"Execution failed: {e}")
-                        console.print(f"[red]Execution error: {e}[/red]")
-                        input("Press Enter...")
+            # IF WE REACH HERE, gcloud_abs_path IS VALID
+            try:
+                adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
+                log(f"Checking for ADC file at: {adc_path}")
+                if not adc_path.exists():
+                    console.print("[yellow]⚠️  Handshake required.[/yellow]")
+                    if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
+                        log(f"Launching gcloud at: {gcloud_abs_path}")
+                        try:
+                            # USE THE ABSOLUTE PATH WE FOUND
+                            subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
+                            log("gcloud command finished successfully.")
+                        except Exception as e:
+                            log(f"Execution failed: {e}")
+                            console.print(f"[red]Execution error: {e}[/red]")
+                            input("Press Enter...")
             
             if adc_path.exists():
                 config.update_env_file("EMATA_AUTH_MODE", "google_auth")
