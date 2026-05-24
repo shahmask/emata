@@ -4,35 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>EMATA | The Enduring AI Terminal Companion</title>
-    <meta name="description" content="EMATA is a persistent AI terminal agent built for developers and power users. Seamlessly transition from geminicli with an agent that stays alive across SSH drops and reboots.">
-    <meta name="keywords" content="AI terminal agent, Gemini CLI, persistent AI, SSH persistence, developer tools, AI coding assistant, gemini.md, autonomous agent">
+    <meta name="description" content="EMATA is an indestructible, workspace-aware, and agentic local AI terminal companion built for modern engineering. Seamlessly pipe files, retain context across SSH drops, and manage concurrent workspaces.">
+    <meta name="keywords" content="AI terminal companion, Gemini CLI, persistent AI, SSH tmux agent, context hydration, developer tooling, autonomous agent">
     
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://emata.asherwrite.com/">
     <meta property="og:title" content="EMATA | The Enduring AI Terminal Companion">
-    <meta property="og:description" content="The AI terminal companion that stays alive when others die. Built for developers, homelab admins, and explorers.">
+    <meta property="og:description" content="The AI terminal companion that stays alive when others die. Built for seamless single-shot piping, git diff context hydration, and multi-tenant persistence.">
     <meta property="og:image" content="https://emata.asherwrite.com/og-image.png">
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://emata.asherwrite.com/">
-    <meta property="twitter:title" content="EMATA | The Enduring AI Terminal Companion">
-    <meta property="twitter:description" content="The AI terminal companion that stays alive when others die. Built for developers, homelab admins, and explorers.">
-    <meta property="twitter:image" content="https://emata.asherwrite.com/og-image.png">
+    <!-- Fonts & Styling -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #0a0b0d;
-            --bg-card: #16181d;
+            --bg-deep: #06080b;
+            --bg-card: rgba(22, 25, 33, 0.7);
             --accent-cyan: #00f2ff;
-            --accent-purple: #9d00ff;
-            --text-main: #e2e8f0;
+            --accent-purple: #a855f7;
+            --accent-magenta: #f43f5e;
+            --text-main: #f1f5f9;
             --text-dim: #94a3b8;
-            --border: #2d3139;
-            --glass: rgba(255, 255, 255, 0.03);
+            --border: rgba(255, 255, 255, 0.08);
+            --glass-glow: rgba(0, 242, 255, 0.05);
+            --glass-bg: rgba(255, 255, 255, 0.02);
         }
 
         * {
@@ -44,12 +41,12 @@
         body {
             background-color: var(--bg-deep);
             color: var(--text-main);
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: 'Outfit', sans-serif;
             line-height: 1.6;
             overflow-x: hidden;
         }
 
-        /* Ambient Glow Background */
+        /* Ambient Cyber Glow Backgrounds */
         .ambient-bg {
             position: fixed;
             top: 0;
@@ -58,203 +55,499 @@
             height: 100%;
             z-index: -1;
             overflow: hidden;
+            pointer-events: none;
         }
 
         .glow-1 {
             position: absolute;
-            top: -10%;
-            right: -5%;
-            width: 50vw;
-            height: 50vw;
-            background: radial-gradient(circle, rgba(157, 0, 255, 0.08) 0%, transparent 70%);
-            filter: blur(80px);
+            top: -20%;
+            right: -10%;
+            width: 70vw;
+            height: 70vw;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
+            filter: blur(120px);
+            animation: float 20s infinite alternate;
         }
 
         .glow-2 {
             position: absolute;
-            bottom: -10%;
-            left: -5%;
-            width: 40vw;
-            height: 40vw;
-            background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, transparent 70%);
-            filter: blur(80px);
+            bottom: -20%;
+            left: -10%;
+            width: 60vw;
+            height: 60vw;
+            background: radial-gradient(circle, rgba(0, 242, 255, 0.08) 0%, transparent 70%);
+            filter: blur(120px);
+            animation: float 25s infinite alternate-reverse;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(40px) scale(1.1); }
         }
 
         /* Layout */
         .container {
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             padding: 0 2rem;
         }
 
         nav {
-            padding: 2rem 0;
+            padding: 2.5rem 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(8px);
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: 800;
-            letter-spacing: -1px;
+            letter-spacing: -1.5px;
             color: var(--text-main);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.6rem;
         }
 
         .logo span {
             color: var(--accent-cyan);
-            text-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+            text-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
         }
 
-        /* Hero Section */
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent-cyan);
+        }
+
+        .version-badge {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #d8b4fe;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        /* Hero Header */
         header {
-            padding: 6rem 0 4rem;
+            padding: 6.5rem 0 3.5rem;
             text-align: center;
+            max-width: 850px;
+            margin: 0 auto;
+        }
+
+        .badge-main {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            padding: 0.4rem 1rem;
+            border-radius: 99px;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            color: var(--text-main);
+            backdrop-filter: blur(12px);
+        }
+
+        .badge-main span {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-cyan);
         }
 
         h1 {
-            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-size: clamp(2.8rem, 8vw, 4.8rem);
             font-weight: 800;
-            line-height: 1.1;
-            letter-spacing: -0.04em;
-            margin-bottom: 1.5rem;
-            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            line-height: 1.05;
+            letter-spacing: -0.05em;
+            margin-bottom: 1.8rem;
+            background: linear-gradient(135deg, #ffffff 30%, #a855f7 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         .tagline {
-            font-size: 1.25rem;
+            font-size: 1.3rem;
             color: var(--text-dim);
-            max-width: 600px;
+            max-width: 720px;
             margin: 0 auto 3rem;
+            font-weight: 400;
         }
 
-        /* Terminal Component */
+        /* Interactive Dual-Mode Terminal Preview */
+        .terminal-container {
+            position: relative;
+            margin-bottom: 7rem;
+        }
+
         .terminal-window {
             background: var(--bg-card);
             border: 1px solid var(--border);
-            border-radius: 12px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            border-radius: 16px;
+            box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.7);
             overflow: hidden;
-            margin-bottom: 6rem;
+            backdrop-filter: blur(16px);
         }
 
         .terminal-header {
-            background: #1e2127;
-            padding: 0.75rem 1rem;
+            background: rgba(22, 25, 33, 0.9);
+            padding: 1rem 1.25rem;
             display: flex;
-            gap: 6px;
+            justify-content: space-between;
+            align-items: center;
             border-bottom: 1px solid var(--border);
         }
 
+        .terminal-dots {
+            display: flex;
+            gap: 7px;
+        }
+
         .dot { width: 12px; height: 12px; border-radius: 50%; }
-        .red { background: #ff5f56; }
-        .yellow { background: #ffbd2e; }
-        .green { background: #27c93f; }
+        .red { background: var(--accent-magenta); }
+        .yellow { background: #eab308; }
+        .green { background: #22c55e; }
+
+        .terminal-tab {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
 
         .terminal-body {
-            padding: 1.5rem;
+            padding: 2rem;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.95rem;
-            color: #d1d5db;
-            min-height: 240px;
+            color: #e2e8f0;
+            min-height: 290px;
+            overflow-y: auto;
         }
 
-        .typewriter {
-            overflow: hidden;
-            white-space: nowrap;
-            border-right: 2px solid var(--accent-cyan);
-            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        .term-prompt { color: var(--accent-cyan); font-weight: bold; }
+        .term-success { color: #22c55e; }
+        .term-comment { color: #64748b; font-style: italic; }
+        .term-args { color: var(--accent-purple); }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 15px;
+            background: var(--accent-cyan);
+            margin-left: 4px;
+            animation: blink 0.8s infinite;
         }
 
-        @keyframes typing { from { width: 0 } to { width: 100% } }
-        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--accent-cyan) } }
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
 
-        /* Features Grid */
+        /* Value Propositions Targeted Grids */
+        .targeted-sections {
+            margin-bottom: 7rem;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 3.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            margin-bottom: 0.5rem;
+        }
+
+        .section-header p {
+            color: var(--text-dim);
+            font-size: 1.05rem;
+        }
+
+        .audiences {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (max-width: 768px) {
+            .audiences { grid-template-columns: 1fr; }
+        }
+
+        .audience-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            backdrop-filter: blur(12px);
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .audience-card:hover {
+            border-color: rgba(168, 85, 247, 0.25);
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .audience-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #fff;
+        }
+
+        .audience-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+        }
+
+        .badge-novice { background: rgba(0, 242, 255, 0.12); color: #22d3ee; border: 1px solid rgba(0, 242, 255, 0.2); }
+        .badge-pro { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.25); }
+
+        .audience-card ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .audience-card li {
+            position: relative;
+            padding-left: 1.75rem;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .audience-card li strong {
+            color: var(--text-main);
+        }
+
+        .audience-card li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            top: 0;
+            color: var(--accent-cyan);
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .audience-card.pro li::before {
+            color: var(--accent-purple);
+        }
+
+        /* Core Features Grid */
         .features {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 6rem;
+            margin-bottom: 7rem;
         }
 
         .feature-card {
-            background: var(--glass);
+            background: var(--glass-bg);
             border: 1px solid var(--border);
-            padding: 2rem;
+            padding: 2.2rem 2rem;
             border-radius: 16px;
-            transition: transform 0.2s ease, border-color 0.2s ease;
+            transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+            backdrop-filter: blur(12px);
         }
 
         .feature-card:hover {
             transform: translateY(-5px);
-            border-color: rgba(0, 242, 255, 0.2);
-            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(0, 242, 255, 0.25);
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: 0 15px 30px -10px rgba(0, 242, 255, 0.1);
+        }
+
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .feature-card:hover .feature-icon {
+            background: rgba(0, 242, 255, 0.1);
+            border-color: rgba(0, 242, 255, 0.3);
         }
 
         .feature-card h3 {
-            font-size: 1.25rem;
-            margin-bottom: 0.75rem;
-            color: #fff;
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+            color: #ffffff;
+            font-weight: 600;
         }
 
         .feature-card p {
             color: var(--text-dim);
             font-size: 0.95rem;
+            line-height: 1.5;
         }
 
-        .icon {
-            font-size: 1.5rem;
-            margin-bottom: 1rem;
-            display: inline-block;
-        }
-
-        /* CTA Section */
-        .cta-box {
-            background: linear-gradient(135deg, rgba(0, 242, 255, 0.05) 0%, rgba(157, 0, 255, 0.05) 100%);
+        /* Interactive Install Section */
+        .cta-section {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.04) 0%, rgba(168, 85, 247, 0.04) 100%);
             border: 1px solid var(--border);
-            padding: 4rem 2rem;
+            padding: 5rem 2rem;
             border-radius: 24px;
             text-align: center;
-            margin-bottom: 6rem;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(20px);
+            margin-bottom: 7rem;
         }
 
-        .install-command {
-            background: #000;
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
+        .cta-section h2 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            letter-spacing: -0.04em;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #fff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .cta-section p {
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 2.5rem;
+            font-size: 1.1rem;
+        }
+
+        .install-widget {
             display: inline-flex;
             align-items: center;
-            gap: 1rem;
-            font-family: 'JetBrains Mono', monospace;
+            background: #020304;
             border: 1px solid var(--border);
-            margin-top: 2rem;
+            padding: 1.1rem 1.8rem;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            max-width: 100%;
+            width: 680px;
+            justify-content: space-between;
             cursor: pointer;
-            transition: border-color 0.2s;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
 
-        .install-command:hover {
-            border-color: var(--accent-cyan);
+        .install-widget:hover {
+            border-color: rgba(0, 242, 255, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 242, 255, 0.08);
         }
 
-        .copy-icon { color: var(--accent-cyan); font-size: 0.8rem; }
+        .install-code {
+            color: #d1d5db;
+            text-align: left;
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-right: 1.5rem;
+        }
 
+        .install-code span {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .copy-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 242, 255, 0.1);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            color: var(--accent-cyan);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: background 0.2s, border-color 0.2s, transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .install-widget:hover .copy-button {
+            background: rgba(0, 242, 255, 0.2);
+            border-color: rgba(0, 242, 255, 0.4);
+        }
+
+        .copy-button:active {
+            transform: scale(0.95);
+        }
+
+        /* Footer */
         footer {
-            padding: 4rem 0;
+            padding: 4.5rem 0;
             text-align: center;
             border-top: 1px solid var(--border);
             color: var(--text-dim);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
+            backdrop-filter: blur(8px);
         }
 
-        /* Responsive Tweaks */
-        @media (max-width: 640px) {
-            header { padding-top: 4rem; }
-            h1 { font-size: 2.5rem; }
+        footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-brand {
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.05);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.12);
         }
     </style>
 </head>
@@ -265,97 +558,152 @@
     </div>
 
     <div class="container">
-        <nav>
+        <!-- Navigation -->
+        <nav id="nav">
             <div class="logo">🛰️ <span>EMATA</span></div>
-            <div style="font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dim); font-weight: 600;">V1.0.11</div>
+            <div class="nav-links">
+                <a href="#targeted-docs" class="nav-link">Usage Profiles</a>
+                <a href="#core-features" class="nav-link">Core Features</a>
+                <div class="version-badge">v1.1.0 STABLE</div>
+            </div>
         </nav>
 
+        <!-- Hero Header -->
         <header>
-            <h1>Enduring AI for<br>Modern Explorers</h1>
-            <p class="tagline">The terminal companion that stays alive when others die. Built for developers, homelab admins, and power users who need their context to last.</p>
+            <div class="badge-main">
+                <span></span> Active Maintenance Resolved
+            </div>
+            <h1>Enduring Developer AI<br>That Stays Alive.</h1>
+            <p class="tagline">The terminal companion that survives SSH drops, laptop sleeps, and network glitches. Designed to act as a highly efficient CLI drop-in replacement with persistent multi-sessions.</p>
         </header>
 
-        <div class="terminal-window">
-            <div class="terminal-header">
-                <div class="dot red"></div>
-                <div class="dot yellow"></div>
-                <div class="dot green"></div>
-            </div>
-            <div class="terminal-body">
-                <div style="color: var(--accent-cyan); margin-bottom: 0.5rem;">$ emata</div>
-                <div style="margin-bottom: 1rem;">🛰️ EMATA Online (Enduring Multi-Agent Terminal App)</div>
-                <div style="color: #6edc5f; margin-bottom: 1rem;">✓ Initializing persistent session: 240524a</div>
-                <div class="typewriter">> How can I help you manage your codebase today?</div>
+        <!-- Interactive Terminal Simulator -->
+        <div class="terminal-container">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="terminal-tab">emata_session: standalone</div>
+                </div>
+                <div class="terminal-body" id="terminalOutput">
+                    <span class="term-comment"># Demo 1: Direct single-shot piping context hydration</span><br>
+                    <span class="term-prompt">$</span> cat database.py | emata -m <span class="term-args">gemini-3.5-pro</span> <span class="term-args">--diff</span> "explain how this connects"<br>
+                    Working...<br>
+                    <span style="color: #cbd5e1;">Analyzing database file and unstaged git changes...</span><br>
+                    <span style="color: var(--accent-cyan); font-weight: bold;">[Gemini 3.5 Pro]:</span> The connection flow uses a local connection pool. Your active git diff confirms you migrated to SSL auth natively. Here is the refactored pool init...<br>
+                    <br>
+                    <span class="term-comment"># Demo 2: Indestructible tmux-backed persistent session launch</span><br>
+                    <span class="term-prompt">$</span> emata<br>
+                    🛰️  Starting first EMATA session in this directory ('260524Su1606a')...<br>
+                    <span class="term-success">✓ Session loaded (SHA-256 Workspace Partition matched)</span><br>
+                    <br>
+                    <span style="color: var(--accent-cyan); font-weight: bold;">gagent ></span> <span class="cursor"></span>
+                </div>
             </div>
         </div>
 
-        <section class="features">
-            <div class="feature-card">
-                <div class="icon">🦾</div>
-                <h3>Indestructible Sessions</h3>
-                <p>Built on a persistent architecture. If your SSH drops or you close your laptop, EMATA stays exactly where you left it.</p>
+        <!-- Targeted Value Propositions -->
+        <section class="targeted-sections" id="targeted-docs">
+            <div class="section-header">
+                <h2>Designed For Every Workspace</h2>
+                <p>Tailored interfaces for both everyday utility and intense AI development.</p>
             </div>
-            <div class="feature-card">
-                <div class="icon">📦</div>
-                <h3>Drop-in Replacement</h3>
-                <p>Fully supports the <code>gemini.md</code> paradigm. No complex migration—just launch EMATA and it learns your rules.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon">🧠</div>
-                <h3>Gemini Native</h3>
-                <p>Engineered for the 3.0+ architecture. Native support for the latest Reasoning models and deep tool-calling autonomy.</p>
-            </div>
-            <div class="feature-card">
-                <div class="icon">🛡️</div>
-                <h3>Local-First Privacy</h3>
-                <p>Your agent lives on your machine. No cloud project uploads required. Your files, your authority, your control.</p>
+            
+            <div class="audiences">
+                <!-- For Novices -->
+                <div class="audience-card">
+                    <h3>🟢 For Novices <span class="audience-badge badge-novice">High Utility</span></h3>
+                    <ul>
+                        <li><strong>Usage-Efficient CLI:</strong> No setup or terminal configuration needed. Simply run direct single-shot queries directly from your regular bash/zsh shell.</li>
+                        <li><strong>Zero Key-Loss:</strong> Close your laptop lid, put it to sleep, or close the terminal tab. Your context is instantly saved and resumes when you run EMATA.</li>
+                        <li><strong>Direct Shell Piping:</strong> Easily pipe server logs, config files, or code directly into the agent command using native shell pipelines (`cat | emata`).</li>
+                        <li><strong>Safety Guardrails:</strong> Bounded by default. Banned from editing files outside the active directory or running destructive actions without your permission.</li>
+                        <li><strong>Interactive Setup & Upgrade:</strong> Simple menus for auth configuration and single-keystroke upgrades directly inside the agent shell (`:upgrade`).</li>
+                    </ul>
+                </div>
+
+                <!-- For AI Professionals -->
+                <div class="audience-card pro">
+                    <h3>🟣 For AI Professionals <span class="audience-badge badge-pro">Advanced State</span></h3>
+                    <ul>
+                        <li><strong>Indestructible Session Persistence:</strong> Runs on a specialized TMUX session architecture. Immune to SSH network connection drops or reboots.</li>
+                        <li><strong>Workspace Session Partitioning:</strong> Conversation histories are split by SHA-256 directory hashing and session names. Launch parallel sessions without overlap.</li>
+                        <li><strong>Thought-Signature Integrity:</strong> Specifically parses, flattens, and preserves complex Thought Signatures from high-reasoning models (e.g. Gemini 3.5).</li>
+                        <li><strong>Granular Context Hydration:</strong> Pass files (`-f`) or directories (`-d`) to inject them cleanly as parsed system prompt context at launch time.</li>
+                        <li><strong>Git-Diff Integration:</strong> Run with `--diff` to immediately feed unstaged git workspace changes to the agent as initialization context.</li>
+                    </ul>
+                </div>
             </div>
         </section>
 
-        <div class="cta-box">
-            <h2 style="font-size: 2rem; margin-bottom: 1rem;">Coming Soon 🚧</h2>
-            <p style="color: var(--text-dim);">Public installation is temporarily disabled for maintenance.</p>
-            
-            <div class="install-command" style="cursor: default; border-color: var(--border);">
-                <span>Architectural refinement in progress...</span>
+        <!-- Core Features Grid -->
+        <section class="features" id="core-features">
+            <div class="feature-card">
+                <div class="feature-icon">🦾</div>
+                <h3>Indestructible TMUX</h3>
+                <p>Ensures connection resilience. Your agent stays active on the remote host across network drops, reboots, and sleep cycles.</p>
             </div>
-            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--accent-cyan); opacity: 0.8;">Check back soon for the v1.1.0 stable release.</p>
+            <div class="feature-card">
+                <div class="feature-icon">📂</div>
+                <h3>Piping & Single-Shot</h3>
+                <p>Works as a true drop-in CLI replacement. Pipe contents or pass direct positional query arguments to stream output and exit immediately.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🧬</div>
+                <h3>Multi-Session Tenancy</h3>
+                <p>Organizes workspace histories dynamically based on current folder hash and session flags. Work concurrently on multiple projects.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛠️</div>
+                <h3>Autonomous Agent</h3>
+                <p>Equipped with native filesystem and command tools, including automatic `.bak` backups before modifying files.</p>
+            </div>
+        </section>
+
+        <!-- CTA & Interactive Installation -->
+        <div class="cta-section">
+            <h2>Install in a Single Keystroke</h2>
+            <p>One command installs EMATA, repairs broken macOS virtual environments, integrates with M-series Homebrew, and configures key-bindings automatically.</p>
+            
+            <div class="install-widget" id="installWidget">
+                <div class="install-code" id="installCommand">
+                    <span>bash -c</span> "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"
+                </div>
+                <div class="copy-button" id="copyBtn">
+                    Copy Code
+                </div>
+            </div>
         </div>
 
+        <!-- Footer -->
         <footer>
-            <p>&copy; 2024 EMATA. Built for the curious. Distributed under MIT License.</p>
+            <p><span class="footer-brand">🛰️ EMATA</span> — Built for modern terminal explorers.</p>
+            <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: 0.5rem;">Distributed under the MIT Open-Source License.</p>
         </footer>
     </div>
 
+    <!-- Interactive Copy Handling Script -->
     <script>
-        document.getElementById('copyBtn').addEventListener('click', function() {
-            const command = document.getElementById('commandText').innerText;
-            const span = this.querySelector('.copy-icon');
-            const originalText = span.innerText;
-
-            navigator.clipboard.writeText(command).then(() => {
-                span.innerText = 'COPIED!';
-                span.style.color = '#6edc5f';
+        document.getElementById('installWidget').addEventListener('click', function() {
+            const rawText = 'bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"';
+            const btn = document.getElementById('copyBtn');
+            
+            navigator.clipboard.writeText(rawText).then(() => {
+                btn.innerText = 'COPIED!';
+                btn.style.color = '#22c55e';
+                btn.style.background = 'rgba(34, 197, 94, 0.12)';
+                btn.style.borderColor = 'rgba(34, 197, 94, 0.3)';
                 setTimeout(() => {
-                    span.innerText = originalText;
-                    span.style.color = 'var(--accent-cyan)';
+                    btn.innerText = 'COPY CODE';
+                    btn.style.color = 'var(--accent-cyan)';
+                    btn.style.background = 'rgba(0, 242, 255, 0.1)';
+                    btn.style.borderColor = 'rgba(0, 242, 255, 0.2)';
                 }, 2000);
             }).catch(err => {
                 console.error('Failed to copy: ', err);
-                // Fallback for older browsers or insecure contexts
-                const el = document.createElement('textarea');
-                el.value = command;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-                
-                span.innerText = 'COPIED!';
-                span.style.color = '#6edc5f';
-                setTimeout(() => {
-                    span.innerText = originalText;
-                    span.style.color = 'var(--accent-cyan)';
-                }, 2000);
             });
         });
     </script>
