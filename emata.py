@@ -205,13 +205,13 @@ def handle_auth_setup(config: Config):
                     run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
                     if run_it == 'y':
                         console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
-                        console.print("[bold red]⚠️  IMPORTANT:[/bold red] In your browser, you [bold]MUST check all the checkboxes[/bold]")
-                        console.print("for the permissions listed (e.g., 'See, edit, configure...') or gcloud will crash.")
-                        
-                        # Use a more explicit scope list to help prevent the 'Scope has changed' error
+                        console.print("[bold red]⚠️  IMPORTANT:[/bold red] Copy the URL below into your local browser.")
+                        console.print("In your browser, you [bold]MUST check all the checkboxes[/bold]")
+                        console.print("for the permissions listed or the handshake will fail.")
+
+                        # Use --no-browser for headless/remote server support
                         scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
-                        subprocess.run(["gcloud", "auth", "application-default", "login", f"--scopes={scopes}"])
-                        
+                        subprocess.run(["gcloud", "auth", "application-default", "login", "--no-browser", f"--scopes={scopes}"])
                         # Re-check after the command runs
                         if adc_path.exists():
                             console.print("[green]✅ Google Auth is now ready![/green]")
