@@ -69,18 +69,21 @@ def handle_auth_setup(config):
 
             if not gcloud_abs_path:
                 log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
-                console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
+                console.print("\n[bold red]Error: Google Cloud SDK (gcloud) not found.[/bold red]")
                 
+                log("Printing install instructions...")
                 if sys_platform == "Darwin":
                     console.print("\n[bold cyan]How to install on Mac:[/bold cyan]")
                     console.print("Run: [green]brew install --cask google-cloud-sdk[/green]")
                 else:
                     console.print("\n[bold cyan]How to install:[/bold cyan]")
-                    console.print("1. Visit: [blue]https://cloud.google.com/sdk/docs/install[/blue]")
+                    console.print("1. Visit: https://cloud.google.com/sdk/docs/install")
                     console.print("2. Follow the instructions for your OS.")
                     console.print("3. Restart your terminal after installation.")
                 
+                log("Waiting for user input at return-to-menu prompt...")
                 input("\nPress Enter to return to menu...")
+                log("Returning from handle_auth_setup after missing gcloud.")
                 return
 
             # IF WE REACH HERE, gcloud_abs_path IS VALID
@@ -88,7 +91,8 @@ def handle_auth_setup(config):
                 adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
                 log(f"Checking for ADC file at: {adc_path}")
                 if not adc_path.exists():
-                    console.print("[yellow]⚠️  Handshake required.[/yellow]")
+                    log("ADC file missing. Requesting handshake.")
+                    console.print("[yellow]Handshake required.[/yellow]")
                     if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
                         log(f"Launching gcloud at: {gcloud_abs_path}")
                         try:
@@ -101,10 +105,12 @@ def handle_auth_setup(config):
                             input("Press Enter...")
                 
                 if adc_path.exists():
+                    log("ADC file found. Setting auth mode.")
                     config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                    console.print("[green]✅ Google Auth ready.[/green]")
+                    console.print("[green]Google Auth ready.[/green]")
                 else:
-                    console.print("[red]❌ Auth failed or cancelled.[/red]")
+                    log("ADC file still missing after attempt.")
+                    console.print("[red]Auth failed or cancelled.[/red]")
                     input("\nPress Enter...")
             except Exception as e:
                 log(f"Error during ADC check/login: {e}")
