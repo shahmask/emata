@@ -44,60 +44,76 @@ def handle_auth_setup(config):
         config.update_env_file("EMATA_AUTH_MODE", "api_key")
     
     elif choice == "2":
-        # FIND THE ABSOLUTE PATH OF GCLOUD
-        gcloud_abs_path = shutil.which("gcloud")
-        log(f"shutil.which found gcloud at: {gcloud_abs_path}")
-        
-        # SEARCH COMMON MAC PATHS IF NOT FOUND
-        if not gcloud_abs_path and platform.system() == "Darwin":
-            log("Searching common Mac paths...")
-            search_paths = [
-                "/usr/local/bin/gcloud",
-                "/opt/homebrew/bin/gcloud",
-                str(Path.home() / "google-cloud-sdk/bin/gcloud")
-            ]
-            for p in search_paths:
-                if os.path.exists(p):
-                    gcloud_abs_path = p
-                    log(f"Found gcloud in fallback search: {p}")
-                    break
+        try:
+            log("User chose Google Auth. Starting path search...")
+            # FIND THE ABSOLUTE PATH OF GCLOUD
+            gcloud_abs_path = shutil.which("gcloud")
+            log(f"shutil.which found gcloud at: {gcloud_abs_path}")
+            
+            # SEARCH COMMON MAC PATHS IF NOT FOUND
+            sys_platform = platform.system()
+            log(f"Detected Platform: {sys_platform}")
+            
+            if not gcloud_abs_path and sys_platform == "Darwin":
+                log("Searching common Mac paths...")
+                search_paths = [
+                    "/usr/local/bin/gcloud",
+                    "/opt/homebrew/bin/gcloud",
+                    str(Path.home() / "google-cloud-sdk/bin/gcloud")
+                ]
+                for p in search_paths:
+                    if os.path.exists(p):
+                        gcloud_abs_path = p
+                        log(f"Found gcloud in fallback search: {p}")
+                        break
 
-        if not gcloud_abs_path:
-            log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
-            console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
-            
-            if platform.system() == "Darwin":
-                console.print("\n[bold cyan]How to install on Mac:[/bold cyan]")
-                console.print("Run: [green]brew install --cask google-cloud-sdk[/green]")
-            else:
-                console.print("\n[bold cyan]How to install:[/bold cyan]")
-                console.print("1. Visit: [blue]https://cloud.google.com/sdk/docs/install[/blue]")
-                console.print("2. Follow the instructions for your OS.")
-                console.print("3. Restart your terminal after installation.")
-            
-            input("\nPress Enter to return to menu...")
+            if not gcloud_abs_path:
+                log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
+                console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
+                
+                if sys_platform == "Darwin":
+                    console.print("\n[bold cyan]How to install on Mac:[/bold cyan]")
+                    console.print("Run: [green]brew install --cask google-cloud-sdk[/green]")
+                else:
+                    console.print("\n[bold cyan]How to install:[/bold cyan]")
+                    console.print("1. Visit: [blue]https://cloud.google.com/sdk/docs/install[/blue]")
+                    console.print("2. Follow the instructions for your OS.")
+                    console.print("3. Restart your terminal after installation.")
+                
+                input("\nPress Enter to return to menu...")
+                return
+        except Exception as e:
+            log(f"Error during gcloud search: {e}")
+            console.print(f"[red]Path resolution error: {e}[/red]")
+            input("Press Enter...")
             return
 
-        adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-        if not adc_path.exists():
-            console.print("[yellow]⚠️  Handshake required.[/yellow]")
-            if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
-                log(f"Launching gcloud at: {gcloud_abs_path}")
-                try:
-                    # PASS THE ABSOLUTE PATH DIRECTLY
-                    subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
-                    log("gcloud command finished successfully.")
-                except Exception as e:
-                    log(f"Execution failed: {e}")
-                    console.print(f"[red]Execution error: {e}[/red]")
-                    input("Press Enter...")
-        
-        if adc_path.exists():
-            config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-            console.print("[green]✅ Google Auth ready.[/green]")
-        else:
-            console.print("[red]❌ Auth failed or cancelled.[/red]")
-            input("\nPress Enter...")
+        try:
+            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
+            log(f"Checking for ADC file at: {adc_path}")
+            if not adc_path.exists():
+                console.print("[yellow]⚠️  Handshake required.[/yellow]")
+                if input("Run 'gcloud login' now? (y/N): ").lower() == "y":
+                    log(f"Launching gcloud at: {gcloud_abs_path}")
+                    try:
+                        # PASS THE ABSOLUTE PATH DIRECTLY
+                        subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
+                        log("gcloud command finished successfully.")
+                    except Exception as e:
+                        log(f"Execution failed: {e}")
+                        console.print(f"[red]Execution error: {e}[/red]")
+                        input("Press Enter...")
+            
+            if adc_path.exists():
+                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                console.print("[green]✅ Google Auth ready.[/green]")
+            else:
+                console.print("[red]❌ Auth failed or cancelled.[/red]")
+                input("\nPress Enter...")
+        except Exception as e:
+            log(f"Error during ADC check/login: {e}")
+            console.print(f"[red]Authentication error: {e}[/red]")
+            input("Press Enter...")
 
 def main():
     config = Config()
