@@ -24,7 +24,7 @@ Whether you're just starting out or you're a seasoned pro, EMATA gives you a pro
 
 ```bash
 brew tap shahmask/tap
-brew install emata
+brew install --HEAD emata
 ```
 
 ### Option 2: One-Liner (Universal)
