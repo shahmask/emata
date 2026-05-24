@@ -260,12 +260,13 @@ def handle_report_issue(config: Config):
     github_url = f"https://github.com/shahmask/emata/issues/new?body={encoded_body}"
     
     try:
-        confirm = console.input("\n[bold cyan]Open GitHub in browser? (Y/n): [/bold cyan]").strip().lower()
-        if confirm != 'n':
+        console.print(f"\n[bold cyan]Issue URL:[/bold cyan]\n[link={github_url}]{github_url}[/link]")
+        console.print("\n[dim](If you are on a remote server, copy and paste the link above into your browser.)[/dim]")
+        
+        confirm = console.input("\n[bold cyan]Attempt to open browser automatically? (y/N): [/bold cyan]").strip().lower()
+        if confirm == 'y':
             console.print("[bold green]🚀 Opening browser...[/bold green]")
             webbrowser.open(github_url)
-        else:
-            console.print("[yellow]Cancelled. You can manually report at: https://github.com/shahmask/emata/issues[/yellow]")
     except (KeyboardInterrupt, EOFError):
         console.print("\n[yellow]Cancelled.[/yellow]")
 
