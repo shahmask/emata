@@ -49,7 +49,13 @@ pip install --quiet pyyaml # Ensure YAML support
 
 # 4. Global Symlink
 echo -e "${BLUE}Creating global symlink...${NC}"
-sudo ln -sf "$INSTALL_DIR/emata-launcher.sh" /usr/local/bin/emata
+if [[ "$OSTYPE" == "darwin"* ]] && [ -d "/opt/homebrew/bin" ]; then
+    ln -sf "$INSTALL_DIR/emata-launcher.sh" /opt/homebrew/bin/emata
+    echo -e "${GREEN}Symlinked to /opt/homebrew/bin/emata${NC}"
+else
+    sudo ln -sf "$INSTALL_DIR/emata-launcher.sh" /usr/local/bin/emata
+    echo -e "${GREEN}Symlinked to /usr/local/bin/emata${NC}"
+fi
 
 # 5. MacBook Scrolling Optimization
 if [[ "$OSTYPE" == "darwin"* ]]; then
