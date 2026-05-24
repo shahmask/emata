@@ -3,6 +3,10 @@
 
 EMATA is a lightweight, no-bloat, Gemini-native terminal AI agent companion. It is engineered specifically for real-world engineering environments, solving the volatility issues of standard CLI wrappers while packing robust agentic autonomy.
 
+> [!IMPORTANT]
+> **Built for Quota Efficiency & Long-Term Compatibility:**
+> EMATA acts as the ultimate drop-in replacement for the deprecated `geminicli`. Unlike resource-heavy developer agents that incinerate usage quotas, EMATA lets you target highly cost-effective, high-reasoning preview and workhorse models like **Gemini 3 Flash Preview**, **Gemini 3.1 Flash-Lite**, and **Gemini 3.5** with fine-grained thinking budgets (low/minimal thinking). Keep your automated workflows running fast, robustly, and within quota.
+
 ---
 
 ## ❓ Why EMATA?
