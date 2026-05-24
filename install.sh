@@ -10,7 +10,7 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}🛰️  Installing EMATA (v1.0.1)...${NC}"
+echo -e "${BLUE}🛰️  Installing EMATA (v1.0.11)...${NC}"
 
 # 1. Dependency Checks
 for cmd in git python3 tmux; do

@@ -1,4 +1,4 @@
-# 🛰️ EMATA (v1.0.1)
+# 🛰️ EMATA (v1.0.11)
 ### Enduring Multi-Agent Terminal App
 
 **EMATA** is a powerful **AI agent companion** for your terminal. It's built for power users—from software developers and program managers to homelab admins—who need a pragmatic assistant that can autonomously write code, manage files, and execute commands while respecting the user's ultimate authority.

@@ -267,7 +267,7 @@
     <div class="container">
         <nav>
             <div class="logo">🛰️ <span>EMATA</span></div>
-            <div style="font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dim); font-weight: 600;">V1.0.1</div>
+            <div style="font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dim); font-weight: 600;">V1.0.11</div>
         </nav>
 
         <header>
@@ -316,8 +316,8 @@
             <h2 style="font-size: 2rem; margin-bottom: 1rem;">Ready to upgrade your shell?</h2>
             <p style="color: var(--text-dim);">One command to install. Infinite persistence.</p>
             
-            <div class="install-command" onclick="navigator.clipboard.writeText('/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)\"')">
-                <span>/bin/bash -c "$(curl -fsSL .../install.sh)"</span>
+            <div class="install-command" id="copyBtn">
+                <span id="commandText">/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"</span>
                 <span class="copy-icon">COPY</span>
             </div>
             <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--accent-cyan); opacity: 0.8;">Or: brew tap shahmask/tap && brew install emata</p>
@@ -325,20 +325,39 @@
 
         <footer>
             <p>&copy; 2024 EMATA. Built for the curious. Distributed under MIT License.</p>
-        </p>
+        </footer>
     </div>
 
     <script>
-        // Simple ripple effect or interaction feedback can be added here
-        document.querySelector('.install-command').addEventListener('click', function() {
+        document.getElementById('copyBtn').addEventListener('click', function() {
+            const command = document.getElementById('commandText').innerText;
             const span = this.querySelector('.copy-icon');
             const originalText = span.innerText;
-            span.innerText = 'COPIED!';
-            span.style.color = '#6edc5f';
-            setTimeout(() => {
-                span.innerText = originalText;
-                span.style.color = 'var(--accent-cyan)';
-            }, 2000);
+
+            navigator.clipboard.writeText(command).then(() => {
+                span.innerText = 'COPIED!';
+                span.style.color = '#6edc5f';
+                setTimeout(() => {
+                    span.innerText = originalText;
+                    span.style.color = 'var(--accent-cyan)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                // Fallback for older browsers or insecure contexts
+                const el = document.createElement('textarea');
+                el.value = command;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                
+                span.innerText = 'COPIED!';
+                span.style.color = '#6edc5f';
+                setTimeout(() => {
+                    span.innerText = originalText;
+                    span.style.color = 'var(--accent-cyan)';
+                }, 2000);
+            });
         });
     </script>
 </body>

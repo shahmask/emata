@@ -241,7 +241,7 @@ def handle_report_issue(config: Config):
     console.print("This will open a browser window with your system details pre-filled.")
     
     # Gather non-sensitive system info
-    emata_version = "v1.0.1"
+    emata_version = "v1.0.11"
     os_info = f"{platform.system()} {platform.release()}"
     python_version = platform.python_version()
     current_model = config.model
