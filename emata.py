@@ -14,6 +14,7 @@ def log(msg):
     except: pass
 
 log("\n--- STARTING EMATA ---")
+log(f"System PATH: {os.environ.get('PATH')}")
 
 try:
     from config import Config
@@ -32,7 +33,7 @@ def handle_auth_setup(config):
     console.print("1. [bold]API Key[/bold]\n2. [bold]Google Auth (ADC)[/bold]")
     
     choice = input("\nChoice (1/2): ").strip()
-    log(f"User choice: {choice}")
+    log(f"User selected choice: {choice}")
     
     if choice == "1":
         key = input("Enter GEMINI_API_KEY: ").strip()
@@ -44,11 +45,26 @@ def handle_auth_setup(config):
         gcloud_abs_path = shutil.which("gcloud")
         log(f"shutil.which found gcloud at: {gcloud_abs_path}")
         
+        # SEARCH COMMON MAC PATHS IF NOT FOUND
+        if not gcloud_abs_path and platform.system() == "Darwin":
+            log("Searching common Mac paths...")
+            search_paths = [
+                "/usr/local/bin/gcloud",
+                "/opt/homebrew/bin/gcloud",
+                str(Path.home() / "google-cloud-sdk/bin/gcloud")
+            ]
+            for p in search_paths:
+                if os.path.exists(p):
+                    gcloud_abs_path = p
+                    log(f"Found gcloud in fallback search: {p}")
+                    break
+
         if not gcloud_abs_path:
-            log("GCLOUD NOT FOUND IN PATH")
+            log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
             console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
+            console.print(f"[dim]PATH seen by Python: {os.environ.get('PATH')[:100]}...[/dim]")
             if platform.system() == "Darwin":
-                console.print("To fix this, run: [green]brew install --cask google-cloud-sdk[/green]")
+                console.print("\nTo fix this, run: [green]brew install --cask google-cloud-sdk[/green]")
             input("\nPress Enter to return...")
             return
 
