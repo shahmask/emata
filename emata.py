@@ -39,9 +39,17 @@ def handle_auth_setup(config):
     elif choice == "2":
         gcloud_path = shutil.which("gcloud")
         if not gcloud_path:
-            console.print("[bold red]❌ Error: 'gcloud' command not found.[/bold red]")
-            console.print("[dim]Please install the Google Cloud SDK first: https://cloud.google.com/sdk/docs/install[/dim]")
-            input("\nPress Enter to return...")
+            console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
+            console.print("Google Auth requires the gcloud SDK to be installed on your system.")
+            
+            if platform.system() == "Darwin":
+                console.print("\n[bold cyan]To install on macOS:[/bold cyan]")
+                console.print("  [green]brew install --cask google-cloud-sdk[/green]")
+            else:
+                console.print("\n[bold cyan]To install on Linux:[/bold cyan]")
+                console.print("  Visit: [link=https://cloud.google.com/sdk/docs/install]https://cloud.google.com/sdk/docs/install[/link]")
+            
+            input("\nPress Enter to return to the selection menu...")
             return
 
         adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
