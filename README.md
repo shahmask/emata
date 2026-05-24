@@ -1,7 +1,7 @@
 # 🛰️ EMATA (v1.0.1)
 ### Enduring Multi-Agent Terminal App
 
-**EMATA** is a powerful **AI agent** and companion for your terminal. It's built for power users—from software developers and program managers to homelab admins—who need a pragmatic assistant that can autonomously write code, manage files, and execute commands while respecting the user's ultimate authority.
+**EMATA** is a powerful **AI agent companion** for your terminal. It's built for power users—from software developers and program managers to homelab admins—who need a pragmatic assistant that can autonomously write code, manage files, and execute commands while respecting the user's ultimate authority.
 
 Whether you're managing a complex codebase, orchestrating project workflows, or maintaining a home server, EMATA gives you a professional-grade autonomous shell that stays alive across remote sessions.
 
@@ -11,6 +11,7 @@ Whether you're managing a complex codebase, orchestrating project workflows, or 
 
 EMATA was created to solve specific frustrations with existing CLI agents:
 
+- **Drop-in Replacement**: EMATA follows the established `gemini.md` / `.gemini` paradigm for local project instructions. If you already have these files in your codebase, EMATA will automatically detect and follow them, making it a seamless transition from other Gemini-based tools.
 - **The Persistence Problem**: Most CLI agents die the moment you lose your SSH connection or close your laptop. EMATA uses a smart TMUX-based architecture to ensure your agent—and your full conversation context—stays alive until you explicitly close it.
 - **The Transition**: With `geminicli` approaching deprecation and newer alternatives like `antigravitycli` not yet being a cost-effective or suitable replacement for many workflows, EMATA provides a pragmatic, local-first alternative.
 - **Gemini-First**: Currently, EMATA **only supports Google Gemini models** (including the latest Reasoning models). It is designed to take full advantage of the Gemini 1.5/2.0+ architecture, including native tool-calling and long-context windows.
