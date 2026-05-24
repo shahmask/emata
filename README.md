@@ -18,12 +18,19 @@ Whether you're just starting out or you're a seasoned pro, EMATA gives you a pro
 
 ---
 
-## 📦 Quick Start (One-Liner)
+## 📦 Installation
 
-Install EMATA globally on Linux or macOS:
+### Option 1: Homebrew (Recommended for macOS/Linux)
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/shaheenaskari/emata/main/install.sh)"
+brew tap shahmask/tap
+brew install emata
+```
+
+### Option 2: One-Liner (Universal)
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"
 ```
 
 ---

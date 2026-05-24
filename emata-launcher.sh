@@ -2,7 +2,7 @@
 # EMATA Central Launcher
 # This script handles the TMUX session management and history independent multi-tenancy.
 
-SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SOURCE_DIR="${EMATA_SOURCE_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
 CURRENT_DIR="$(pwd)"
 
 if command -v tmux >/dev/null 2>&1 && [ -z "$TMUX" ]; then
