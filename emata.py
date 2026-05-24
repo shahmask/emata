@@ -26,6 +26,9 @@ try:
     log("Imports successful.")
 except Exception as e:
     log(f"Import error: {e}")
+    print(f"\n[bold red]FATAL IMPORT ERROR:[/bold red] {e}")
+    print("Ensure you are running inside the virtual environment.")
+    input("Press Enter to exit...")
     sys.exit(1)
 
 def handle_auth_setup(config):
@@ -62,10 +65,17 @@ def handle_auth_setup(config):
         if not gcloud_abs_path:
             log("GCLOUD NOT FOUND AFTER EXHAUSTIVE SEARCH")
             console.print("\n[bold red]❌ Error: Google Cloud SDK (gcloud) not found.[/bold red]")
-            console.print(f"[dim]PATH seen by Python: {os.environ.get('PATH')[:100]}...[/dim]")
+            
             if platform.system() == "Darwin":
-                console.print("\nTo fix this, run: [green]brew install --cask google-cloud-sdk[/green]")
-            input("\nPress Enter to return...")
+                console.print("\n[bold cyan]How to install on Mac:[/bold cyan]")
+                console.print("Run: [green]brew install --cask google-cloud-sdk[/green]")
+            else:
+                console.print("\n[bold cyan]How to install:[/bold cyan]")
+                console.print("1. Visit: [blue]https://cloud.google.com/sdk/docs/install[/blue]")
+                console.print("2. Follow the instructions for your OS.")
+                console.print("3. Restart your terminal after installation.")
+            
+            input("\nPress Enter to return to menu...")
             return
 
         adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
@@ -91,13 +101,17 @@ def handle_auth_setup(config):
 
 def main():
     config = Config()
-    if not config.check_auth():
+    
+    # LOOP UNTIL AUTH IS VALID OR USER EXITS
+    while not config.check_auth():
         handle_auth_setup(config)
         if not config.check_auth():
-            console.print("[bold red]Auth required.[/bold red]")
-            input("Press Enter to exit...")
-            sys.exit(1)
-            
+            console.print("\n[yellow]⚠️  Authentication is still not configured.[/yellow]")
+            choice = input("Retry setup? (Y/n) or type 'exit': ").lower().strip()
+            if choice == "exit" or choice == "n":
+                console.print("[red]Exiting...[/red]")
+                sys.exit(0)
+
     try:
         agent = Agent(config)
         console.print(Panel(Text("🛰️ EMATA Online", style="bold cyan"), border_style="cyan"))
@@ -116,7 +130,9 @@ def main():
             console.print()
     except Exception as e:
         log(f"Main Loop Error: {e}")
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"\n[bold red]FATAL ERROR:[/bold red] {e}")
+        traceback.print_exc()
+        input("\nPress Enter to exit...")
 
 if __name__ == "__main__":
     try:

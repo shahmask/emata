@@ -83,7 +83,8 @@ class Config:
     def check_auth(self) -> bool:
         """Returns True if auth is configured based on current mode."""
         if self.auth_mode == "google_auth":
-            return True # Assume ADC is handled by SDK
+            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
+            return adc_path.exists()
         return bool(self.api_key)
 
     def update_env_file(self, key: str, value: str):
