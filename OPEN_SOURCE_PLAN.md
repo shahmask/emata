@@ -1,12 +1,12 @@
 # 🛰️ Project EMATA — Enduring Multi-Agent Terminal App
-## **Status: v1.0-Beta Released 🚀**
+## **Status: v1.0.1 Released 🚀**
 
 ## 📜 Vision
 A lightweight, no-bloat, Gemini-native terminal agent built for real-world engineering environments. **EMATA** excels where others fail: unstable SSH connections, concurrent independent multi-tasking in a single directory, and deep integration with the Gemini 3 "Reasoning" ecosystem.
 
 ---
 
-## ✅ Completed Milestones (v1.0-Beta)
+## ✅ Completed Milestones (v1.0.1)
 1.  **Core Architecture**: Stable multi-agent loop with "Thought Signature" capture for Gemini 3 reasoning models.
 2.  **SSH Resilience**: TMUX-based launcher (`emata-launcher.sh`) for persistent sessions.
 3.  **Crazy Mode**: Toggleable safety confirmation (`:crazy`) for no-prompt autonomy.
@@ -18,10 +18,10 @@ A lightweight, no-bloat, Gemini-native terminal agent built for real-world engin
     *   Removed all hardcoded home directory paths.
     *   Created a robust universal `install.sh`.
 6.  **MacBook Optimization**: Integrated `Option + Up/Down` keyboard scrolling for Mac users in TMUX.
-7.  **Smart UI**:
-    *   Live "Working..." spinner.
-    *   Automatic mouse-focus management (toggles mouse off during user prompts).
-    *   Case-insensitive detection of project rules (`gemini.md`, `GEMINI.md`, etc.).
+8.  **Integrated Auth Flow**:
+    *   Interactive first-run prompt for API Key or Google Cloud (ADC).
+    *   Dynamic agent re-initialization on auth changes (no restart required).
+    *   Robust Google Cloud ADC handshake with explicit scope handling.
 
 ---
 

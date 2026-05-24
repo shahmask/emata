@@ -1,4 +1,4 @@
-# 🛰️ EMATA (v1.0-beta)
+# 🛰️ EMATA (v1.0.1)
 ### Enduring Multi-Agent Terminal App
 
 **EMATA** is a powerful **AI agent** and companion for your terminal. It's built for engineers who want an assistant that can actually *get things done*—writing code, managing files, and running commands—without being restricted by corporate **guardrails** that slow you down.
@@ -18,31 +18,25 @@ Whether you're just starting out or you're a seasoned pro, EMATA gives you a pro
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Setup
 
-### Option 1: Homebrew (Recommended for macOS/Linux)
-
-```bash
-brew tap shahmask/tap
-brew install --HEAD emata
-```
-
-### Option 2: One-Liner (Universal)
+### Option 1: One-Liner (Recommended)
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)"
 ```
 
----
+### 🔐 First Run
+When you launch EMATA for the first time, it will automatically detect if your authentication is missing and prompt you to set up your **Gemini API Key** or use **Google Cloud (ADC)**. 
 
-## ⌨️ Control Commands
+### ⌨️ Control Commands
 
 | Command | Action |
 | :--- | :--- |
 | `:crazy` | Toggle Crazy Mode (ON = No more "Are you sure?" prompts) |
 | `:yolo` | Toggle YOLO Mode (ON = Full system access / Remove guardrails) |
 | `:search` | Toggle Real-Time Web Lookup |
-| `:auth` | Toggle between API Key and Google Cloud ADC |
+| `:auth` | Switch between API Key and Google Auth / Update credentials |
 | `:help` | View all available system commands |
 | `:mouse` | Toggle TMUX mouse mode (handy for scrolling) |
 

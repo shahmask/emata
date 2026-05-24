@@ -167,6 +167,70 @@ def set_tmux_mouse(state: str):
     except Exception:
         pass
 
+def handle_auth_setup(config: Config):
+    """Prompts the user to configure authentication (API Key or Google Auth)."""
+    console.print("\n[bold cyan]🔐 Authentication Setup:[/bold cyan]")
+    console.print(f"  Current Mode: [yellow]{config.auth_mode}[/yellow]")
+    console.print("-" * 30)
+    console.print("  1. [bold]API Key[/bold] (Standard, works everywhere)")
+    console.print("  2. [bold]Google Auth[/bold] (Enterprise, uses your gcloud session)")
+    
+    try:
+        choice = console.input("\n[bold cyan]Select auth mode (1/2 or Enter to cancel): [/bold cyan]").strip()
+        if choice == "1":
+            new_key = console.input("[bold cyan]Enter your GEMINI_API_KEY (leave blank to keep current): [/bold cyan]").strip()
+            if new_key:
+                config.update_env_file("GEMINI_API_KEY", new_key)
+            config.update_env_file("EMATA_AUTH_MODE", "api_key")
+            console.print("[bold green]✓ Auth mode set to API Key.[/bold green]")
+        
+        elif choice == "2":
+            # Perform diagnostics for Google Auth
+            console.print("\n[bold yellow]🔍 Checking Google Cloud environment...[/bold yellow]")
+            
+            has_gcloud = subprocess.run(["which", "gcloud"], capture_output=True).returncode == 0
+            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
+            has_adc = adc_path.exists()
+            
+            if not has_gcloud:
+                console.print("[red]❌ Error: 'gcloud' CLI not found.[/red]")
+                console.print("[dim]Please install it first: https://cloud.google.com/sdk/docs/install[/dim]")
+            elif not has_adc:
+                console.print("[yellow]⚠️  Handshake required![/yellow]")
+                console.print("Your gcloud session is active, but Application Default Credentials (ADC) are missing.")
+                console.print("\n[bold cyan]To fix this, run this command in your terminal:[/bold cyan]")
+                console.print(Panel("[white]gcloud auth application-default login[/white]", border_style="green"))
+                
+                try:
+                    run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
+                    if run_it == 'y':
+                        console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
+                        console.print("[bold red]⚠️  IMPORTANT:[/bold red] In your browser, you [bold]MUST check all the checkboxes[/bold]")
+                        console.print("for the permissions listed (e.g., 'See, edit, configure...') or gcloud will crash.")
+                        
+                        # Use a more explicit scope list to help prevent the 'Scope has changed' error
+                        scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
+                        subprocess.run(["gcloud", "auth", "application-default", "login", f"--scopes={scopes}"])
+                        
+                        # Re-check after the command runs
+                        if adc_path.exists():
+                            console.print("[green]✅ Google Auth is now ready![/green]")
+                            config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                            console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
+                        else:
+                            console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
+                    else:
+                        console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
+                except (KeyboardInterrupt, EOFError):
+                    console.print("\n[yellow]Cancelled auth handshake.[/yellow]")
+            else:
+                console.print("[green]✅ Google Auth is ready to use![/green]")
+                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
+                console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
+                
+    except (KeyboardInterrupt, EOFError):
+        console.print("\n[yellow]Cancelled auth change.[/yellow]")
+
 def main():
     args = parse_args()
     
@@ -185,17 +249,19 @@ def main():
         
     # Check for authentication
     if not config.check_auth():
-        logger.error("Authentication Error: GEMINI_API_KEY not set")
+        logger.info("Authentication not configured. Prompting user...")
         console.print(Panel(
-            "[bold red]Authentication Error:[/bold red] GEMINI_API_KEY environment variable is not set.\n\n"
-            "Please set the API key in your environment:\n"
-            "  [green]export GEMINI_API_KEY=\"your-api-key\"[/green]\n\n"
-            "Or create a [yellow].env[/yellow] file in this directory containing:\n"
-            "  [green]GEMINI_API_KEY=your-api-key[/green]",
-            border_style="red",
-            title="[bold red]Missing API Key[/bold red]"
+            "[bold yellow]Authentication Required[/bold yellow]\n\n"
+            "EMATA requires a Gemini API Key or Google Cloud credentials to function.",
+            border_style="yellow"
         ))
-        sys.exit(1)
+        handle_auth_setup(config)
+        
+        # Check again
+        if not config.check_auth():
+            logger.error("Authentication still not configured. Exiting.")
+            console.print("[bold red]Error:[/bold red] Authentication is required to use EMATA. Exiting.")
+            sys.exit(1)
         
     # Prompt to create gemini.md if missing
     prompt_create_gemini_file(config)
@@ -279,69 +345,13 @@ def main():
                     continue
 
                 elif user_input.lower() == ":auth":
-                    console.print("\n[bold cyan]🔐 Authentication Setup:[/bold cyan]")
-                    console.print(f"  Current Mode: [yellow]{config.auth_mode}[/yellow]")
-                    console.print("-" * 30)
-                    console.print("  1. [bold]API Key[/bold] (Standard, works everywhere)")
-                    console.print("  2. [bold]Google Auth[/bold] (Enterprise, uses your gcloud session)")
-                    
+                    handle_auth_setup(config)
+                    # Re-initialize the agent to apply new auth settings
                     try:
-                        choice = console.input("\n[bold cyan]Select auth mode (1/2 or Enter to cancel): [/bold cyan]").strip()
-                        if choice == "1":
-                            new_key = console.input("[bold cyan]Enter your GEMINI_API_KEY (leave blank to keep current): [/bold cyan]").strip()
-                            if new_key:
-                                config.update_env_file("GEMINI_API_KEY", new_key)
-                            config.update_env_file("EMATA_AUTH_MODE", "api_key")
-                            console.print("[bold green]✓ Auth mode set to API Key.[/bold green]")
-                        
-                        elif choice == "2":
-                            # Perform diagnostics for Google Auth
-                            console.print("\n[bold yellow]🔍 Checking Google Cloud environment...[/bold yellow]")
-                            
-                            has_gcloud = subprocess.run(["which", "gcloud"], capture_output=True).returncode == 0
-                            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-                            has_adc = adc_path.exists()
-                            
-                            if not has_gcloud:
-                                console.print("[red]❌ Error: 'gcloud' CLI not found.[/red]")
-                                console.print("[dim]Please install it first: https://cloud.google.com/sdk/docs/install[/dim]")
-                            elif not has_adc:
-                                console.print("[yellow]⚠️  Handshake required![/yellow]")
-                                console.print("Your gcloud session is active, but Application Default Credentials (ADC) are missing.")
-                                console.print("\n[bold cyan]To fix this, run this command in your terminal:[/bold cyan]")
-                                console.print(Panel("[white]gcloud auth application-default login[/white]", border_style="green"))
-                                
-                                try:
-                                    run_it = console.input("\n[bold cyan]Would you like to run this command now? (y/N): [/bold cyan]").strip().lower()
-                                    if run_it == 'y':
-                                        console.print("\n[bold yellow]🚀 Launching gcloud auth...[/bold yellow]")
-                                        console.print("[bold red]⚠️  IMPORTANT:[/bold red] In your browser, you [bold]MUST check all the checkboxes[/bold]")
-                                        console.print("for the permissions listed (e.g., 'See, edit, configure...') or gcloud will crash.")
-                                        
-                                        # Use a more explicit scope list to help prevent the 'Scope has changed' error
-                                        scopes = "https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/userinfo.email,openid"
-                                        subprocess.run(["gcloud", "auth", "application-default", "login", f"--scopes={scopes}"])
-                                        
-                                        # Re-check after the command runs
-                                        if adc_path.exists():
-                                            console.print("[green]✅ Google Auth is now ready![/green]")
-                                            config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                                            console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
-                                            console.print("[dim]Please restart EMATA for the engine to switch clients.[/dim]")
-                                        else:
-                                            console.print("[red]❌ ADC file still not found. Authentication might have failed.[/red]")
-                                    else:
-                                        console.print("\n[dim]Once done, come back and switch to Google Auth again.[/dim]")
-                                except (KeyboardInterrupt, EOFError):
-                                    console.print("\n[yellow]Cancelled auth handshake.[/yellow]")
-                            else:
-                                console.print("[green]✅ Google Auth is ready to use![/green]")
-                                config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                                console.print("[bold green]✓ Auth mode set to Google Auth (ADC).[/bold green]")
-                                console.print("[dim]Please restart EMATA for the engine to switch clients.[/dim]")
-                                
-                    except (KeyboardInterrupt, EOFError):
-                        console.print("\n[yellow]Cancelled auth change.[/yellow]")
+                        agent = Agent(config)
+                        console.print("[bold green]✓ Agent re-initialized with new auth settings.[/bold green]")
+                    except Exception as e:
+                        console.print(f"[bold red]Error re-initializing agent:[/bold red] {e}")
                     continue
 
                 elif user_input.lower().startswith(":model"):
