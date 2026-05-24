@@ -13,7 +13,7 @@ def log(msg):
             f.write(f"[{ts}] {msg}\n")
     except: pass
 
-log("\n--- STARTING EMATA ---")
+log("\n--- STARTING EMATA (v1.0.12) ---")
 log(f"System PATH: {os.environ.get('PATH')}")
 
 try:
