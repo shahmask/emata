@@ -284,9 +284,26 @@ def main():
             
         try:
             agent = Agent(config)
-            print("Working...", end="\r")
+            is_thinking = False
             for chunk in agent.send_message_stream(query_str):
-                if "text" in chunk: console.print(chunk["text"], end="")
+                # Legacy support
+                if "text" in chunk:
+                    is_thinking = False
+                    console.print(chunk["text"], end="")
+                elif "thought" in chunk:
+                    if not is_thinking:
+                        console.print("[dim]🧠 Thinking...[/dim]\n", end="")
+                        is_thinking = True
+                    console.print(f"[dim italic]{chunk['thought']}[/dim italic]", end="")
+                # Standard API keys
+                elif chunk.get("type") == "text":
+                    is_thinking = False
+                    console.print(chunk.get("content", ""), end="")
+                elif chunk.get("type") == "thought":
+                    if not is_thinking:
+                        console.print("[dim]🧠 Thinking...[/dim]\n", end="")
+                        is_thinking = True
+                    console.print(f"[dim italic]{chunk.get('content', '')}[/dim italic]", end="")
             console.print()
             sys.exit(0)
         except Exception as e:
@@ -345,10 +362,27 @@ def main():
                     console.print(f"[red]Failed to execute self-upgrade: {e}[/red]")
                 continue
             
-            print("Working...", end="\r")
+            is_thinking = False
             try:
                 for chunk in agent.send_message_stream(user_input):
-                    if "text" in chunk: console.print(chunk["text"], end="")
+                    # Legacy support
+                    if "text" in chunk:
+                        is_thinking = False
+                        console.print(chunk["text"], end="")
+                    elif "thought" in chunk:
+                        if not is_thinking:
+                            console.print("[dim]🧠 Thinking...[/dim]\n", end="")
+                            is_thinking = True
+                        console.print(f"[dim italic]{chunk['thought']}[/dim italic]", end="")
+                    # Standard API keys
+                    elif chunk.get("type") == "text":
+                        is_thinking = False
+                        console.print(chunk.get("content", ""), end="")
+                    elif chunk.get("type") == "thought":
+                        if not is_thinking:
+                            console.print("[dim]🧠 Thinking...[/dim]\n", end="")
+                            is_thinking = True
+                        console.print(f"[dim italic]{chunk.get('content', '')}[/dim italic]", end="")
                 console.print()
             except KeyboardInterrupt:
                 console.print("\n[yellow]Operation interrupted by user.[/yellow]")

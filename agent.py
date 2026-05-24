@@ -3,6 +3,37 @@ from google.genai import types
 from google.genai.types import Content, Part
 from google.api_core import exceptions
 from tools import ALL_TOOLS, TOOL_MAPPING
+
+# --- Pydantic Monkeypatch for types.ToolConfig to support include_server_side_tool_invocations ---
+original_init = types.ToolConfig.__init__
+def patched_init(self, *args, **kwargs):
+    flag = kwargs.pop("include_server_side_tool_invocations", None)
+    original_init(self, *args, **kwargs)
+    if flag is not None:
+        object.__setattr__(self, "include_server_side_tool_invocations", flag)
+types.ToolConfig.__init__ = patched_init
+
+original_validate = types.ToolConfig.model_validate
+@classmethod
+def patched_validate(cls, obj, *args, **kwargs):
+    flag = None
+    if isinstance(obj, dict):
+        obj = dict(obj)
+        flag = obj.pop("include_server_side_tool_invocations", None)
+    res = original_validate(obj, *args, **kwargs)
+    if flag is not None:
+        object.__setattr__(res, "include_server_side_tool_invocations", flag)
+    return res
+types.ToolConfig.model_validate = patched_validate
+
+original_dump = types.ToolConfig.model_dump
+def patched_dump(self, *args, **kwargs):
+    data = original_dump(self, *args, **kwargs)
+    if hasattr(self, "include_server_side_tool_invocations"):
+        data["include_server_side_tool_invocations"] = self.include_server_side_tool_invocations
+    return data
+types.ToolConfig.model_dump = patched_dump
+# ----------------------------------------------------------------------------------------------
 import os
 import hashlib
 import json
@@ -208,10 +239,24 @@ class Agent:
         self.save_session()
         
         thinking_config = None
-        if self.config.thinking_budget is not None or self.config.thinking_level is not None:
+        budget = self.config.thinking_budget
+        level = self.config.thinking_level
+        
+        # Map thinking_level strings to integer token budgets
+        if budget is None and level is not None:
+            level_map = {
+                "minimal": 1024,
+                "low": 2048,
+                "medium": 8192,
+                "high": 16384
+            }
+            budget = level_map.get(str(level).lower(), 2048)
+            
+        if budget is not None:
+            # ThinkingConfig in modern SDK supports thinking_budget and include_thoughts
             thinking_config = types.ThinkingConfig(
-                thinking_budget=self.config.thinking_budget,
-                thinking_level=self.config.thinking_level
+                thinking_budget=budget,
+                include_thoughts=True
             )
 
         success = False
