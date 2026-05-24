@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMATA | The Enduring AI Terminal Companion</title>
+    <meta name="description" content="EMATA is a persistent AI terminal agent built for developers and power users. Seamlessly transition from geminicli with an agent that stays alive across SSH drops and reboots.">
+    <meta name="keywords" content="AI terminal agent, Gemini CLI, persistent AI, SSH persistence, developer tools, AI coding assistant, gemini.md, autonomous agent">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://emata.asherwrite.com/">
+    <meta property="og:title" content="EMATA | The Enduring AI Terminal Companion">
+    <meta property="og:description" content="The AI terminal companion that stays alive when others die. Built for developers, homelab admins, and explorers.">
+    <meta property="og:image" content="https://emata.asherwrite.com/og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://emata.asherwrite.com/">
+    <meta property="twitter:title" content="EMATA | The Enduring AI Terminal Companion">
+    <meta property="twitter:description" content="The AI terminal companion that stays alive when others die. Built for developers, homelab admins, and explorers.">
+    <meta property="twitter:image" content="https://emata.asherwrite.com/og-image.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0b0d;
+            --bg-card: #16181d;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #9d00ff;
+            --text-main: #e2e8f0;
+            --text-dim: #94a3b8;
+            --border: #2d3139;
+            --glass: rgba(255, 255, 255, 0.03);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Inter', -apple-system, sans-serif;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* Ambient Glow Background */
+        .ambient-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .glow-1 {
+            position: absolute;
+            top: -10%;
+            right: -5%;
+            width: 50vw;
+            height: 50vw;
+            background: radial-gradient(circle, rgba(157, 0, 255, 0.08) 0%, transparent 70%);
+            filter: blur(80px);
+        }
+
+        .glow-2 {
+            position: absolute;
+            bottom: -10%;
+            left: -5%;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(0, 242, 255, 0.05) 0%, transparent 70%);
+            filter: blur(80px);
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        nav {
+            padding: 2rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo span {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+        }
+
+        /* Hero Section */
+        header {
+            padding: 6rem 0 4rem;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            font-weight: 800;
+            line-height: 1.1;
+            letter-spacing: -0.04em;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            font-size: 1.25rem;
+            color: var(--text-dim);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+        }
+
+        /* Terminal Component */
+        .terminal-window {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            margin-bottom: 6rem;
+        }
+
+        .terminal-header {
+            background: #1e2127;
+            padding: 0.75rem 1rem;
+            display: flex;
+            gap: 6px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .red { background: #ff5f56; }
+        .yellow { background: #ffbd2e; }
+        .green { background: #27c93f; }
+
+        .terminal-body {
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: #d1d5db;
+            min-height: 240px;
+        }
+
+        .typewriter {
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 2px solid var(--accent-cyan);
+            animation: typing 3.5s steps(40, end), blink-caret .75s step-end infinite;
+        }
+
+        @keyframes typing { from { width: 0 } to { width: 100% } }
+        @keyframes blink-caret { from, to { border-color: transparent } 50% { border-color: var(--accent-cyan) } }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 6rem;
+        }
+
+        .feature-card {
+            background: var(--glass);
+            border: 1px solid var(--border);
+            padding: 2rem;
+            border-radius: 16px;
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(0, 242, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .feature-card h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+            color: #fff;
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+        }
+
+        /* CTA Section */
+        .cta-box {
+            background: linear-gradient(135deg, rgba(0, 242, 255, 0.05) 0%, rgba(157, 0, 255, 0.05) 100%);
+            border: 1px solid var(--border);
+            padding: 4rem 2rem;
+            border-radius: 24px;
+            text-align: center;
+            margin-bottom: 6rem;
+        }
+
+        .install-command {
+            background: #000;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid var(--border);
+            margin-top: 2rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .install-command:hover {
+            border-color: var(--accent-cyan);
+        }
+
+        .copy-icon { color: var(--accent-cyan); font-size: 0.8rem; }
+
+        footer {
+            padding: 4rem 0;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 0.9rem;
+        }
+
+        /* Responsive Tweaks */
+        @media (max-width: 640px) {
+            header { padding-top: 4rem; }
+            h1 { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg">
+        <div class="glow-1"></div>
+        <div class="glow-2"></div>
+    </div>
+
+    <div class="container">
+        <nav>
+            <div class="logo">🛰️ <span>EMATA</span></div>
+            <div style="font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dim); font-weight: 600;">V1.0.1</div>
+        </nav>
+
+        <header>
+            <h1>Enduring AI for<br>Modern Explorers</h1>
+            <p class="tagline">The terminal companion that stays alive when others die. Built for developers, homelab admins, and power users who need their context to last.</p>
+        </header>
+
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <div class="dot red"></div>
+                <div class="dot yellow"></div>
+                <div class="dot green"></div>
+            </div>
+            <div class="terminal-body">
+                <div style="color: var(--accent-cyan); margin-bottom: 0.5rem;">$ emata</div>
+                <div style="margin-bottom: 1rem;">🛰️ EMATA Online (Enduring Multi-Agent Terminal App)</div>
+                <div style="color: #6edc5f; margin-bottom: 1rem;">✓ Initializing persistent session: 240524a</div>
+                <div class="typewriter">> How can I help you manage your codebase today?</div>
+            </div>
+        </div>
+
+        <section class="features">
+            <div class="feature-card">
+                <div class="icon">🦾</div>
+                <h3>Indestructible Sessions</h3>
+                <p>Built on a persistent architecture. If your SSH drops or you close your laptop, EMATA stays exactly where you left it.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📦</div>
+                <h3>Drop-in Replacement</h3>
+                <p>Fully supports the <code>gemini.md</code> paradigm. No complex migration—just launch EMATA and it learns your rules.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🧠</div>
+                <h3>Gemini Native</h3>
+                <p>Engineered for the 3.0+ architecture. Native support for the latest Reasoning models and deep tool-calling autonomy.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">🛡️</div>
+                <h3>Local-First Privacy</h3>
+                <p>Your agent lives on your machine. No cloud project uploads required. Your files, your authority, your control.</p>
+            </div>
+        </section>
+
+        <div class="cta-box">
+            <h2 style="font-size: 2rem; margin-bottom: 1rem;">Ready to upgrade your shell?</h2>
+            <p style="color: var(--text-dim);">One command to install. Infinite persistence.</p>
+            
+            <div class="install-command" onclick="navigator.clipboard.writeText('/bin/bash -c \"$(curl -fsSL https://raw.githubusercontent.com/shahmask/emata/main/install.sh)\"')">
+                <span>/bin/bash -c "$(curl -fsSL .../install.sh)"</span>
+                <span class="copy-icon">COPY</span>
+            </div>
+            <p style="margin-top: 1rem; font-size: 0.8rem; color: var(--accent-cyan); opacity: 0.8;">Or: brew tap shahmask/tap && brew install emata</p>
+        </div>
+
+        <footer>
+            <p>&copy; 2024 EMATA. Built for the curious. Distributed under MIT License.</p>
+        </p>
+    </div>
+
+    <script>
+        // Simple ripple effect or interaction feedback can be added here
+        document.querySelector('.install-command').addEventListener('click', function() {
+            const span = this.querySelector('.copy-icon');
+            const originalText = span.innerText;
+            span.innerText = 'COPIED!';
+            span.style.color = '#6edc5f';
+            setTimeout(() => {
+                span.innerText = originalText;
+                span.style.color = 'var(--accent-cyan)';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
