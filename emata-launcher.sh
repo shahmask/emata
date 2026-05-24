@@ -18,6 +18,18 @@ if [ ! -f "$PYTHON_BIN" ]; then
     exit 1
 fi
 
+# 2. SMART FIRST-RUN (For stability on Mac)
+# If auth isn't configured, run the first setup in Direct Mode to avoid Tmux 'flashing'
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    # Quick check if config exists and has an auth mode
+    CONFIG_FILE="$HOME/.config/emata/config.yaml"
+    if [ ! -f "$CONFIG_FILE" ] || ! grep -q "auth_mode" "$CONFIG_FILE"; then
+        echo "🔐 Initializing EMATA Authentication..."
+        "$PYTHON_BIN" "$SOURCE_DIR/emata.py" "$@"
+        # After setup, we continue to the tmux check
+    fi
+fi
+
 if [ "$1" == "--no-tmux" ]; then
     shift
     echo "🛰️  Starting EMATA in Direct Mode (No Tmux)..."
