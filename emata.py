@@ -18,6 +18,7 @@ from rich.text import Text
 from rich.live import Live
 
 console = Console()
+config_instance = None
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -41,11 +42,22 @@ def show_welcome_banner(config: Config, debug: bool = False):
     banner_text.append("🚀 EMATA Online (Enduring Multi-Agent Terminal App)\n", style="bold cyan")
     banner_text.append(f"Model: {config.model}", style="green")
     
-    # Show Safe Mode status in banner
-    safe_status = "ON" if config.safe_mode else "OFF"
-    safe_style = "bold green" if config.safe_mode else "bold yellow"
+    # Show Crazy Mode status (No prompts)
+    crazy_status = "ON" if config.crazy_mode else "OFF"
+    crazy_style = "bold red" if config.crazy_mode else "bold green"
     banner_text.append(" | ", style="white")
-    banner_text.append(f"🛡️  Safe Mode: {safe_status}", style=safe_style)
+    banner_text.append(f"🤪 Crazy Mode: {crazy_status}", style=crazy_style)
+
+    # Show YOLO Mode status (No restrictions)
+    yolo_status = "ON" if config.yolo_mode else "OFF"
+    yolo_style = "bold red" if config.yolo_mode else "bold green"
+    banner_text.append(" | ", style="white")
+    banner_text.append(f"🚀 YOLO Mode: {yolo_status}", style=yolo_style)
+
+    search_status = "ON" if config.search_enabled else "OFF"
+    search_style = "bold green" if config.search_enabled else "bold yellow"
+    banner_text.append(" | ", style="white")
+    banner_text.append(f"🔍 Search: {search_status}", style=search_style)
     
     if config.system_instructions:
         banner_text.append(" | ", style="white")
@@ -77,16 +89,35 @@ def on_tool_call(name: str, args: dict):
     console.print(f"\n[bold yellow]🛠️  Tool Call:[/bold yellow] [cyan]{name}({args_str})[/cyan]")
 
 def prompt_create_gemini_file(config: Config):
-    """Checks if gemini.md or .gemini exists; prompts to create gemini.md if not."""
+    """Checks if gemini.md or .gemini exists (case-insensitive); prompts to create gemini.md if not."""
     cwd = Path.cwd()
-    gemini_file_md = cwd / "gemini.md"
-    gemini_file_dot = cwd / ".gemini"
     
-    if not gemini_file_md.exists() and not gemini_file_dot.exists():
+    # Case-insensitive search for instruction files
+    instruction_filenames = ["gemini.md", ".gemini", "gemini"]
+    found_file = None
+    
+    if cwd.exists():
+        actual_files = {f.name.lower(): f for f in cwd.iterdir() if f.is_file()}
+        for target in instruction_filenames:
+            if target in actual_files:
+                found_file = actual_files[target]
+                break
+    
+    if not found_file:
         console.print("[yellow]⚠️  No gemini.md or .gemini file found in this directory.[/yellow]")
         try:
+            # Temporarily disable mouse to allow focus/selection for the prompt
+            current_mouse = get_tmux_mouse_state()
+            set_tmux_mouse("off")
+            
             create_choice = console.input("[bold cyan]Would you like to create a gemini.md file with custom instructions? (y/N): [/bold cyan]").strip().lower()
+            
+            # Restore mouse if it was on
+            if current_mouse == "on":
+                set_tmux_mouse("on")
             if create_choice in ("y", "yes"):
+                # Disable mouse for multi-line input
+                set_tmux_mouse("off")
                 console.print("[cyan]Enter your instructions (press Enter on an empty line to finish):[/cyan]")
                 lines = []
                 while True:
@@ -95,9 +126,14 @@ def prompt_create_gemini_file(config: Config):
                         break
                     lines.append(line)
                 
+                # Restore mouse if it was on
+                if current_mouse == "on":
+                    set_tmux_mouse("on")
+                
                 instructions = "\n".join(lines).strip()
                 if instructions:
                     try:
+                        gemini_file_md = cwd / "gemini.md"
                         with open(gemini_file_md, "w", encoding="utf-8") as f:
                             f.write(instructions + "\n")
                         console.print(f"[bold green]✓ Successfully created gemini.md with your instructions![/bold green]\n")
@@ -139,7 +175,9 @@ def main():
     logger.info("Starting gagent session")
 
     # Initialize configuration
+    global config_instance
     config = Config()
+    config_instance = config
     
     # CLI override for model
     if args.model:
@@ -357,7 +395,9 @@ def main():
                         (":change-model", "List and select a default model from the API"),
                         (":model <name>", "Switch active model for this session"),
                         (":auth", "Toggle between API Key and Google Auth"),
-                        (":safe", "Toggle Safe Mode (Confirmation for risky commands)"),
+                        (":crazy", "Toggle Crazy Mode (ON = No safety prompts)"),
+                        (":yolo", "Toggle YOLO Mode (ON = Full system access)"),
+                        (":search", "Toggle Google Search grounding"),
                         (":mouse", "Toggle Mouse Mode (Turn OFF to copy text easily)"),
                         (":config", "View active configuration and Session ID"),
                         (":exit", "Exit current session and clear history")
@@ -374,13 +414,46 @@ def main():
                     console.print(help_text)
                     continue
 
-                elif user_input.lower() == ":safe":
+                elif user_input.lower() == ":crazy":
                     # Toggle and save
-                    new_state = not config.safe_mode
-                    config.update_env_file("EMATA_SAFE_MODE", "true" if new_state else "false")
+                    new_state = not config.crazy_mode
+                    config.update_env_file("EMATA_CRAZY_MODE", "true" if new_state else "false")
                     # Use the updated state for feedback
-                    status = "[bold green]ON[/bold green]" if config.safe_mode else "[bold yellow]OFF[/bold yellow]"
-                    console.print(f"✓ Safe Mode is now {status}")
+                    status = "[bold red]ON[/bold red]" if config.crazy_mode else "[bold green]OFF[/bold green]"
+                    console.print(f"✓ Crazy Mode is now {status}")
+                    if config.crazy_mode:
+                        console.print("[dim]Caution: Safety prompts are now DISABLED. Proceed with care![/dim]")
+                    continue
+
+                elif user_input.lower() == ":yolo":
+                    # Toggle and save
+                    new_state = not config.yolo_mode
+                    config.update_env_file("EMATA_YOLO_MODE", "true" if new_state else "false")
+                    # Use the updated state for feedback
+                    status = "[bold red]ON[/bold red]" if config.yolo_mode else "[bold green]OFF[/bold green]"
+                    console.print(f"✓ YOLO Mode is now {status}")
+                    if config.yolo_mode:
+                        console.print("[dim]Full system access ENABLED. Workspace guardrails are down![/dim]")
+                    else:
+                        console.print("[dim]Guardrails ENABLED. Access limited to current directory.[/dim]")
+                    continue
+
+                elif user_input.lower() == ":search":
+                    # Toggle and save
+                    new_state = not config.search_enabled
+                    config.update_env_file("EMATA_SEARCH_ENABLED", "true" if new_state else "false")
+                    # Use the updated state for feedback
+                    status = "[bold green]ON[/bold green]" if config.search_enabled else "[bold yellow]OFF[/bold yellow]"
+                    console.print(f"✓ Google Search grounding is now {status}")
+                    continue
+
+                elif user_input.lower() == ":search":
+                    # Toggle and save
+                    new_state = not config.search_enabled
+                    config.update_env_file("EMATA_SEARCH_ENABLED", "true" if new_state else "false")
+                    # Use the updated state for feedback
+                    status = "[bold green]ON[/bold green]" if config.search_enabled else "[bold yellow]OFF[/bold yellow]"
+                    console.print(f"✓ Google Search grounding is now {status}")
                     continue
 
                 elif user_input.lower() in [":session", ":sessions"]:
@@ -471,6 +544,10 @@ def main():
                     markdown_content = ""
 
                 def wrapped_on_confirm(name, args):
+                    # In Crazy Mode, we never prompt for confirmation
+                    if config.crazy_mode:
+                        return True
+
                     stop_live()
                     import json
                     console.print(Panel(

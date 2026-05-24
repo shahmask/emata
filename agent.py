@@ -225,11 +225,13 @@ class Agent:
                     try:
                         logger.debug(f"Starting stream attempt {retry_count + 1}/{max_retries} using model {self.config.model}")
                         
-                        # Enable Google Search grounding for real-time info
-                        google_search_tool = types.Tool(
-                            google_search=types.GoogleSearch()
-                        )
-                        active_tools = ALL_TOOLS + [google_search_tool]
+                        active_tools = ALL_TOOLS.copy()
+                        if self.config.search_enabled:
+                            # Enable Google Search grounding for real-time info
+                            google_search_tool = types.Tool(
+                                google_search=types.GoogleSearch()
+                            )
+                            active_tools.append(google_search_tool)
                         
                         response_stream = self.client.models.generate_content_stream(
                             model=self.config.model,
@@ -343,8 +345,8 @@ class Agent:
                     if on_tool_call:
                         on_tool_call(name, args)
                         
-                    # Handle Safe Mode confirmation
-                    if self.config.safe_mode and on_confirm:
+                    # Handle confirmation for risky tools
+                    if on_confirm:
                         is_risky = False
                         if name == "delete_file":
                             is_risky = True

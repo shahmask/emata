@@ -4,12 +4,41 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 
+import shutil
+import logging
+
+logger = logging.getLogger("emata.tools")
+
+def is_safe_path(path: str) -> bool:
+    """Checks if a path is within the current working directory."""
+    try:
+        target = Path(path).resolve()
+        cwd = Path.cwd().resolve()
+        return target == cwd or cwd in target.parents
+    except Exception:
+        return False
+
+def backup_file(path: Path):
+    """Creates a .bak copy of a file if it exists."""
+    if path.exists() and path.is_file():
+        try:
+            bak_path = path.with_suffix(path.suffix + ".bak")
+            shutil.copy2(path, bak_path)
+            logger.info(f"Created backup: {bak_path}")
+        except Exception as e:
+            logger.warning(f"Failed to create backup for {path}: {e}")
+
 def list_dir(path: str = ".") -> str:
     """Lists the contents of a directory.
 
     Args:
         path: The directory path to list (defaults to the current working directory).
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         target = Path(path).resolve()
         # Ensure we stay safe and handle errors
@@ -39,6 +68,11 @@ def read_file(path: str, start_line: Optional[int] = None, end_line: Optional[in
         start_line: Optional start line number to read (1-indexed).
         end_line: Optional end line number to read (1-indexed, inclusive).
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         target = Path(path).resolve()
         if not target.exists():
@@ -75,8 +109,17 @@ def write_file(path: str, content: str, overwrite: bool = True) -> str:
         content: The text content to write into the file.
         overwrite: Set to True to overwrite existing files, False to fail if the file already exists.
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         target = Path(path).resolve()
+        
+        # Automatic Backup before modification
+        backup_file(target)
+
         if target.exists() and not overwrite:
             return f"Error: File '{path}' already exists and overwrite is disabled."
         
@@ -97,6 +140,11 @@ def delete_file(path: str) -> str:
     Args:
         path: The file path to delete.
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         target = Path(path).resolve()
         if not target.exists():
@@ -115,6 +163,15 @@ def run_command(command: str) -> str:
     Args:
         command: The shell command line string to run.
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        # In strict mode, we block commands that look like they are trying to exit the workspace
+        # This is a basic heuristic; true isolation would require a container/sandbox
+        blocked_patterns = [r"\.\./", r"/\.\.", r"~/", r"/etc", r"/var", r"/root", r"/usr"]
+        for pattern in blocked_patterns:
+            if re.search(pattern, command):
+                return f"Error: YOLO Mode is OFF (Guardrails active). Command contains potentially unsafe path reference: '{pattern}'"
+
     try:
         # Run command in the current working directory, capture stdout and stderr, timeout in 60s
         result = subprocess.run(
@@ -150,6 +207,11 @@ def search_grep(pattern: str, path: str = ".", recursive: bool = True) -> str:
         path: The directory or file path to start the search from (defaults to '.').
         recursive: Whether to search subdirectories recursively.
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         base_path = Path(path).resolve()
         if not base_path.exists():
@@ -202,8 +264,17 @@ def replace_text_in_file(path: str, search_text: str, replace_text: str, count: 
         replace_text: The replacement text.
         count: The maximum number of occurrences to replace (defaults to 1).
     """
+    from emata import config_instance
+    if config_instance and not config_instance.yolo_mode:
+        if not is_safe_path(path):
+            return f"Error: YOLO Mode is OFF (Guardrails active). Access to '{path}' is denied."
+
     try:
         target = Path(path).resolve()
+        
+        # Automatic Backup before modification
+        backup_file(target)
+
         if not target.exists():
             return f"Error: File '{path}' does not exist."
         if not target.is_file():
