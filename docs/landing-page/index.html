@@ -25,6 +25,7 @@
             --accent-cyan: #00f2ff;
             --accent-purple: #a855f7;
             --accent-magenta: #f43f5e;
+            --accent-yellow: #eab308;
             --text-main: #f1f5f9;
             --text-dim: #94a3b8;
             --border: rgba(255, 255, 255, 0.08);
@@ -250,9 +251,12 @@
         }
 
         .term-prompt { color: var(--accent-cyan); font-weight: bold; }
+        .term-prompt-magenta { color: #f5d0fe; font-weight: bold; }
         .term-success { color: #22c55e; }
         .term-comment { color: #64748b; font-style: italic; }
         .term-args { color: var(--accent-purple); }
+        .term-yellow { color: var(--accent-yellow); font-weight: bold; }
+        .term-purple { color: #d8b4fe; }
 
         .cursor {
             display: inline-block;
@@ -564,7 +568,7 @@
             <div class="nav-links">
                 <a href="#targeted-docs" class="nav-link">Usage Profiles</a>
                 <a href="#core-features" class="nav-link">Core Features</a>
-                <div class="version-badge">v1.1.0 STABLE</div>
+                <div class="version-badge">v1.1.7 STABLE</div>
             </div>
         </nav>
 
@@ -595,6 +599,13 @@
                     <div class="terminal-tab">emata_session: standalone</div>
                 </div>
                 <div class="terminal-body" id="terminalOutput">
+                    <div style="border: 1px solid #00f2ff; padding: 10px; margin-bottom: 20px; border-radius: 4px;">
+                        <span class="term-yellow">EMATA Online</span> (<span class="term-success">primary</span>) <span class="red" style="padding: 2px 5px; font-size: 0.7rem; border-radius: 3px; font-weight: bold; color: white;">YOLO</span> <span class="term-magenta" style="background: #a855f7; padding: 2px 5px; font-size: 0.7rem; border-radius: 3px; font-weight: bold; color: white;">CRAZY</span><br>
+                        ───────────────────────────────────────────────────<br>
+                        Model: <span class="term-prompt">gemini-3-flash-preview</span><br>
+                        Crazy: <span class="term-purple">On</span> | YOLO: <span class="term-args">On</span>
+                    </div>
+
                     <span class="term-comment"># Demo 1: Direct single-shot piping context hydration</span><br>
                     <span class="term-prompt">$</span> cat database.py | emata -m <span class="term-args">gemini-3-flash-preview</span> <span class="term-args">--diff</span> "explain how this connects"<br>
                     Working...<br>
@@ -603,10 +614,12 @@
                     <br>
                     <span class="term-comment"># Demo 2: Indestructible tmux-backed persistent session launch</span><br>
                     <span class="term-prompt">$</span> emata<br>
-                    🛰️  Starting first EMATA session in this directory ('260524Su1606a')...<br>
                     <span class="term-success">✓ Session loaded (SHA-256 Workspace Partition matched)</span><br>
                     <br>
-                    <span style="color: var(--accent-cyan); font-weight: bold;">gagent ></span> <span class="cursor"></span>
+                    <span class="term-prompt-magenta">EMATA ></span> <span class="term-purple">can u update python libraries?</span><br>
+                    <span class="term-comment">🧠 Thinking...</span><br>
+                    <span class="term-args">🔧 Tool: run_command(command="pip install --upgrade ...")</span><br>
+                    <span class="cursor"></span>
                 </div>
             </div>
         </div>
@@ -623,9 +636,9 @@
                 <div class="audience-card">
                     <h3>🟢 For Novices <span class="audience-badge badge-novice">High Utility</span></h3>
                     <ul>
-                        <li><strong>Extreme Quota Protection:</strong> Heavy developer agents like **Antigravity** (especially *Antigravity Flash Medium*) can incinerate your usage quotas with complex, expensive background reasoning loops. EMATA protects your API usage by letting you run extremely cost-effective, high-reasoning models like **Gemini 3 Flash Preview**, **Gemini 3.1 Flash-Lite**, and **Gemini 3.5** with **low-thinking budgets** (which are completely unavailable in Antigravity).</li>
+                        <li><strong>Extreme Quota Protection:</strong> Heavy developer agents like **Antigravity** can incinerate your usage quotas with complex, expensive background loops. EMATA protects your API usage by letting you run extremely cost-effective, high-reasoning models like **Gemini 3 Flash Preview** within your **AI Pro 5TB** quota.</li>
                         <li><strong>Drop-in `geminicli` Replacement:</strong> With `geminicli` facing deprecation, EMATA serves as the ultimate drop-in shell companion. You keep your fast, lightweight terminal queries while gaining indestructible sessions and workspace isolation.</li>
-                        <li><strong>Google & API Token Auth:</strong> Frictionless onboarding. Authenticate instantly using your enterprise **Google Cloud Auth (gcloud / ADC)** or standard **Gemini API Key** tokens. Switch between them anytime using the <code>:auth</code> command.</li>
+                        <li><strong>Simplified API Key Auth:</strong> Frictionless onboarding. Authenticate instantly using a standard Gemini API Key. No complex Google Cloud setup required to access your account benefits.</li>
                         <li><strong>Zero Context Loss:</strong> Close your laptop lid, put it to sleep, or close the terminal tab. Your context is instantly saved and resumes when you run EMATA.</li>
                         <li><strong>Direct Shell Piping:</strong> Easily pipe server logs, config files, or code directly into the agent command using native shell pipelines (e.g. <code>cat | emata</code>).</li>
                     </ul>
@@ -636,10 +649,10 @@
                     <h3>🟣 For AI Professionals <span class="audience-badge badge-pro">Advanced State</span></h3>
                     <ul>
                         <li><strong>Indestructible Session Persistence:</strong> Runs on a specialized TMUX session architecture. Immune to SSH network connection drops or reboots.</li>
-                        <li><strong>Workspace Session Partitioning:</strong> Conversation histories are split by SHA-256 directory hashing and session names. Launch parallel sessions without overlap.</li>
-                        <li><strong>Precision Budget Tuning:</strong> Configure low/minimal thinking limits on preview tiers like **Gemini 3.5**, **Gemini 3.1**, and **Gemini 3.0 Flash Preview**—allowing you to run model options that are completely absent or restricted in corporate developer agents like Antigravity.</li>
-                        <li><strong>Dual Auth Integration:</strong> Seamlessly swaps authentication pipelines. Natively integrates with <code>gcloud auth application-default login</code> directly from the shell or respects fallback <code>GEMINI_API_KEY</code> configurations.</li>
-                        <li><strong>Thought-Signature Integrity:</strong> Specifically parses, flattens, and preserves complex Thought Signatures from high-reasoning models (e.g. Gemini 3.5).</li>
+                        <li><strong>Multi-Key Management:</strong> Store multiple API keys with **nicknames** (e.g., "primary", "work", "pro"). Switch between different projects or quota pools instantly with the <code>:keys</code> command.</li>
+                        <li><strong>Smart Permissions:</strong> High-speed autonomy. Safe read-only actions (like <code>ls</code> or <code>read_file</code>) run automatically, while destructive actions prompt for your confirmation unless **CRAZY** mode is toggled.</li>
+                        <li><strong>Precision Budget Tuning:</strong> Configure low/minimal thinking limits on preview tiers like **Gemini 3.5**, **Gemini 3.1**, and **Gemini 3.0 Flash Preview**.</li>
+                        <li><strong>Thought-Signature Integrity:</strong> Specifically parses, flattens, and preserves complex Thought Signatures from high-reasoning models.</li>
                         <li><strong>Granular Context Hydration:</strong> Pass files (<code>-f</code>) or directories (<code>-d</code>) to inject them cleanly as parsed system prompt context at launch time.</li>
                         <li><strong>Git-Diff Integration:</strong> Run with <code>--diff</code> to immediately feed unstaged git workspace changes to the agent as initialization context.</li>
                     </ul>
@@ -661,13 +674,13 @@
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🧬</div>
-                <h3>Multi-Session Tenancy</h3>
-                <p>Organizes workspace histories dynamically based on current folder hash and session flags. Work concurrently on multiple projects.</p>
+                <h3>Multi-Key Manager</h3>
+                <p>Switch between multiple API keys instantly using nicknames. Manage separate projects and quota pools without restarting.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🛠️</div>
-                <h3>Autonomous Agent</h3>
-                <p>Equipped with native filesystem and command tools, including automatic `.bak` backups before modifying files.</p>
+                <h3>Smart Autonomy</h3>
+                <p>Equipped with native terminal tools. Inherently safe: auto-executes read-only tasks, prompts for modifications.</p>
             </div>
         </section>
 
