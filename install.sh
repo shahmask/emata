@@ -97,7 +97,8 @@ model: "gemini-3-flash-preview"
 crazy_mode: $CRAZY_VAL
 yolo_mode: $YOLO_VAL
 search_enabled: true
-auth_mode: "api_key"
+keys: {}
+active_key_name: ""
 EOT
 fi
 

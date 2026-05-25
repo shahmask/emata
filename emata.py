@@ -1,6 +1,26 @@
 #!/usr/bin/env python3
-import sys, os, traceback, subprocess, shutil, platform, datetime, argparse
+import sys, os, traceback, platform, datetime, argparse, warnings, re, webbrowser
 from pathlib import Path
+
+# Suppress warnings early
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", message=".*urllib3 v2 only supports OpenSSL 1.1.1+.*")
+
+VERSION = "1.1.7"
+REPO_URL = "https://github.com/shahmask/emata"
+
+try:
+    from config import get_config
+    from agent import Agent
+    from tools import TOOL_MAPPING
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.text import Text
+    from rich.table import Table
+    console = Console()
+except Exception as e:
+    print(f"\nFATAL IMPORT ERROR: {e}")
+    sys.exit(1)
 
 # 1. IMMEDIATE LOGGING
 os.makedirs(os.path.expanduser("~/.emata"), exist_ok=True)
@@ -8,402 +28,261 @@ BOOT_LOG = os.path.expanduser("~/.emata/boot_debug.log")
 
 def log(msg):
     try:
+        # Prevent log from growing indefinitely (1MB limit)
+        if os.path.exists(BOOT_LOG) and os.path.getsize(BOOT_LOG) > 1024 * 1024:
+            with open(BOOT_LOG, "w") as f:
+                f.write("[LOG ROTATED]\n")
+        
         with open(BOOT_LOG, "a") as f:
             ts = datetime.datetime.now().strftime("%H:%M:%S")
             f.write(f"[{ts}] {msg}\n")
     except: pass
 
-log("--- EMATA STARTUP v1.0.13 ---")
+def handle_key_manager(config):
+    while True:
+        console.print("\n[bold cyan]🔑 API Key Manager[/bold cyan]")
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("Status", width=10)
+        table.add_column("Nickname", width=20)
+        table.add_column("Key (Partial)", width=30)
+        for name, val in config.keys.items():
+            status = "[bold green]ACTIVE[/bold green]" if name == config.active_key_name else ""
+            display_key = f"{val[:6]}...{val[-4:]}" if len(val) > 10 else val
+            table.add_row(status, name, display_key)
+        console.print(table)
+        console.print("\nOptions: [b]add[/b], [b]switch[/b], [b]delete[/b], [b]back[/b]")
+        try:
+            cmd = input("\nkeys > ").strip().lower()
+            if cmd == "back": break
+            if cmd == "add":
+                nick = input("Nickname: ").strip()
+                val = input("Key: ").strip()
+                if nick and val: config.add_key(nick, val)
+            elif cmd == "switch":
+                nick = input("Nickname: ").strip()
+                config.switch_key(nick)
+            elif cmd == "delete":
+                nick = input("Nickname: ").strip()
+                config.delete_key(nick)
+        except: break
 
-try:
-    from config import Config
-    from agent import Agent
-    from rich.console import Console
-    from rich.panel import Panel
-    from rich.text import Text
-    console = Console()
-    log("Imports successful.")
-except Exception as e:
-    log(f"Import error: {e}")
-    print(f"\nFATAL IMPORT ERROR: {e}")
-    input("Press Enter to exit...")
-    sys.exit(1)
+def handle_model_selector(config, agent):
+    console.print("\n[bold cyan]🔭 Fetching available Gemini models...[/bold cyan]")
+    try:
+        models = [m.name.replace("models/", "") for m in agent.client.models.list() if "gemini" in m.name.lower()]
+        if not models:
+            console.print("[yellow]No Gemini models found.[/yellow]")
+            return False
+        table = Table(show_header=True, header_style="bold cyan")
+        table.add_column("#", width=4)
+        table.add_column("Model Name", width=40)
+        table.add_column("Status", width=10)
+        for i, m_name in enumerate(models, 1):
+            status = "[bold green]ACTIVE[/bold green]" if m_name == config.model else ""
+            table.add_row(str(i), m_name, status)
+        console.print(table)
+        choice = input("\nSelect model number (or 'back'): ").strip().lower()
+        if choice != "back" and choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(models):
+                new_model = models[idx]
+                config.update_setting("GEMINI_MODEL", new_model)
+                console.print(f"[green]Switched to model: {new_model}[/green]")
+                return True 
+    except Exception as e:
+        console.print(f"[red]Failed to list models: {e}[/red]")
+    return False
 
-def handle_auth_setup(config):
-    console.print("\n[bold cyan]Authentication Setup[/bold cyan]")
-    console.print("1. API Key\n2. Google Auth (ADC)")
+def handle_report_issue(config):
+    console.print("\n[bold red]🐞 Report an Issue[/bold red]")
+    console.print("This will open the Emata GitHub issues page and provide diagnostic info.")
+    
+    # Collect diagnostics
+    diag = (
+        f"EMATA Version: {VERSION}\n"
+        f"Python Version: {platform.python_version()}\n"
+        f"OS: {platform.system()} {platform.release()}\n"
+        f"Model: {config.model}\n"
+    )
+    
+    console.print("\n[bold cyan]Diagnostic Info (Copy this for your report):[/bold cyan]")
+    console.print(Panel(diag, border_style="dim"))
     
     try:
-        choice = input("\nChoice (1/2): ").strip()
-    except (KeyboardInterrupt, EOFError):
-        console.print("\n[yellow]Setup cancelled.[/yellow]")
-        return
-    log(f"User choice: {choice}")
-    
-    if choice == "1":
-        try:
-            key = input("Enter GEMINI_API_KEY: ").strip()
-        except (KeyboardInterrupt, EOFError):
-            console.print("\n[yellow]Cancelled.[/yellow]")
-            return
-        if key: config.update_env_file("GEMINI_API_KEY", key)
-        config.update_env_file("EMATA_AUTH_MODE", "api_key")
-    
-    elif choice == "2":
-        try:
-            log("Starting gcloud search...")
-            gcloud_abs_path = shutil.which("gcloud")
-            sys_platform = platform.system()
-            
-            if not gcloud_abs_path and sys_platform == "Darwin":
-                log("Fallback search on Mac...")
-                search_paths = [
-                    "/usr/local/bin/gcloud",
-                    "/opt/homebrew/bin/gcloud",
-                    str(Path.home() / "google-cloud-sdk/bin/gcloud")
-                ]
-                for p in search_paths:
-                    if os.path.exists(p):
-                        gcloud_abs_path = p
-                        break
+        if input("\nOpen GitHub issues page? (y/n): ").lower() == "y":
+            webbrowser.open(f"{REPO_URL}/issues/new")
+            console.print("[green]Opening browser...[/green]")
+    except:
+        console.print(f"\nPlease visit: {REPO_URL}/issues")
 
-            if not gcloud_abs_path:
-                log("GCLOUD MISSING")
-                console.print("\n[bold red]Error: Google Cloud SDK not found.[/bold red]")
-                
-                if sys_platform == "Darwin":
-                    console.print("\nHow to install on Mac:")
-                    console.print("Run: brew install --cask google-cloud-sdk")
-                else:
-                    console.print("\nHow to install:")
-                    console.print("Visit: https://cloud.google.com/sdk/docs/install")
-                
-                try:
-                    input("\nPress Enter to return to menu...")
-                except (KeyboardInterrupt, EOFError):
-                    pass
-                return
+def display_help():
+    console.print("\n[bold cyan]📖 Runtime Commands[/bold cyan]")
+    console.print("  [b]:help[/b]      - Show this guide")
+    console.print("  [b]:keys[/b]      - Manage API keys")
+    console.print("  [b]:model[/b]     - Switch Gemini models")
+    console.print("  [b]:clear[/b]     - Reset session history")
+    console.print("  [b]:report[/b]    - Report a bug or issue")
+    console.print("  [b]:yolo[/b]      - Toggle YOLO mode")
+    console.print("  [b]:crazy[/b]     - Toggle tool confirmation")
+    console.print("  [b]:session[/b]   - Show current details")
+    console.print("  [b]:exit[/b]      - Exit Emata")
 
-            try:
-                adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-                if not adc_path.exists():
-                    log("Handshake required.")
-                    console.print("[yellow]Handshake required.[/yellow]")
-                    try:
-                        run_login = input("Run 'gcloud login' now? (y/N): ").lower() == "y"
-                    except (KeyboardInterrupt, EOFError):
-                        run_login = False
-                    if run_login:
-                        subprocess.run([gcloud_abs_path, "auth", "application-default", "login", "--no-browser"])
-                
-                if adc_path.exists():
-                    config.update_env_file("EMATA_AUTH_MODE", "google_auth")
-                    console.print("[green]Google Auth ready.[/green]")
-                else:
-                    console.print("[red]Auth failed.[/red]")
-                    try:
-                        input("\nPress Enter...")
-                    except (KeyboardInterrupt, EOFError):
-                        pass
-            except Exception as e:
-                log(f"ADC Error: {e}")
-                try:
-                    input("Press Enter...")
-                except (KeyboardInterrupt, EOFError):
-                    pass
-        except Exception as e:
-            log(f"Search Error: {e}")
-            try:
-                input("Press Enter...")
-            except (KeyboardInterrupt, EOFError):
-                pass
+def print_header(config):
+    active_tag = f"[bold green]{config.active_key_name}[/bold green]"
+    active_model = f"[bold cyan]{config.model}[/bold cyan]"
+    c_status = "[bold magenta]On[/bold magenta]" if config.crazy_mode else "[dim]Off[/dim]"
+    y_status = "[bold red]On[/bold red]" if config.yolo_mode else "[dim]Off[/dim]"
+    header_text = Text.from_markup(
+        f"[bold yellow]EMATA Online[/bold yellow] ({active_tag})\n"
+        f"───────────────────────────────────────────────────\n"
+        f"Model: {active_model}\n"
+        f"Crazy: {c_status} | YOLO: {y_status}"
+    )
+    console.print(Panel(header_text, style="bold cyan", border_style="cyan", padding=(0, 1)))
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="EMATA (Enduring Multi-Agent Terminal App) - A persistent, agentic local CLI coding companion."
-    )
-    parser.add_argument(
-        "query",
-        nargs="*",
-        help="Optional single-shot query string to run the agent in direct mode (exits after completion)."
-    )
-    parser.add_argument(
-        "-f", "--file",
-        action="append",
-        default=[],
-        help="Code or text file to include as start context (can be specified multiple times)."
-    )
-    parser.add_argument(
-        "-d", "--dir",
-        action="append",
-        default=[],
-        help="Directory to inspect and load its structure/file list as start context (can be specified multiple times)."
-    )
-    parser.add_argument(
-        "--diff",
-        action="store_true",
-        help="Load active workspace git diff changes programmatically into the starting context."
-    )
-    parser.add_argument(
-        "-m", "--model",
-        type=str,
-        help="Override the default Gemini model for this session."
-    )
-    parser.add_argument(
-        "--search",
-        action="store_true",
-        default=None,
-        help="Explicitly enable Google Search grounding for real-time information."
-    )
-    parser.add_argument(
-        "--no-search",
-        action="store_true",
-        default=None,
-        help="Explicitly disable Google Search grounding to save context tokens."
-    )
-    parser.add_argument(
-        "--yolo",
-        action="store_true",
-        default=None,
-        help="Enable YOLO Mode (remove workspace guardrails for full command/file access)."
-    )
-    parser.add_argument(
-        "--safe",
-        action="store_true",
-        default=None,
-        help="Enable Safe Mode (activate workspace guardrails, deny commands out of folder)."
-    )
-    parser.add_argument(
-        "--crazy",
-        action="store_true",
-        default=None,
-        help="Enable Crazy Mode (bypass safety confirmation prompts for risky actions)."
-    )
-    return parser.parse_args()
+def is_tool_safe(name, args):
+    if name in ["list_dir", "read_file", "search_grep"]: return True
+    if name == "run_command":
+        cmd = args.get("command", "").lower().strip()
+        safe_prefixes = ["ls ", "cat ", "curl ", "grep ", "pwd", "whoami", "date", "which ", "echo "]
+        return any(cmd.startswith(p) or cmd == p.strip() for p in safe_prefixes)
+    return False
 
 def main():
-    args = parse_args()
-    config = Config()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("query", nargs="*")
+    parser.add_argument("-m", "--model")
+    parser.add_argument("-k", "--key")
+    parser.add_argument("-f", "--file", action="append", default=[])
+    parser.add_argument("-d", "--dir", action="append", default=[])
+    parser.add_argument("--diff", action="store_true")
+    parser.add_argument("--yolo", action="store_true")
+    parser.add_argument("--crazy", action="store_true")
+    args = parser.parse_args()
     
-    # 1. Apply command-line overrides to config
-    if args.model:
-        config.model = args.model
-    if args.search is True:
-        config.search_enabled = True
-    elif args.no_search is True:
-        config.search_enabled = False
-    if args.yolo is True:
-        config.yolo_mode = True
-    elif args.safe is True:
-        config.yolo_mode = False
-    if args.crazy is True:
-        config.crazy_mode = True
+    config = get_config()
+    if args.key: config.switch_key(args.key)
+    if args.model: config.update_setting("GEMINI_MODEL", args.model)
+    if args.yolo: config.update_setting("EMATA_YOLO_MODE", True)
+    if args.crazy: config.update_setting("EMATA_CRAZY_MODE", True)
 
-    # 2. Build custom starting context
-    context_parts = []
-    
-    # 2a. Handle standard input piping (e.g. cat file.txt | emata "explain")
-    if not sys.stdin.isatty():
-        try:
-            piped_data = sys.stdin.read().strip()
-            if piped_data:
-                context_parts.append(f"=== PIPED INPUT CONTENT ===\n{piped_data}\n===========================")
-        except Exception as e:
-            log(f"Error reading piped stdin: {e}")
-            
-    # 2b. Handle explicit file context hydration (-f / --file)
-    for f_path in args.file:
-        try:
-            target = Path(f_path).resolve()
-            if target.exists() and target.is_file():
-                with open(target, "r", encoding="utf-8", errors="replace") as f:
-                    content = f.read()
-                context_parts.append(f"=== FILE CONTEXT: {f_path} ===\n{content}\n===========================")
-            else:
-                console.print(f"[yellow]Warning: File '{f_path}' not found or is not a file.[/yellow]")
-        except Exception as e:
-            log(f"Error loading file context {f_path}: {e}")
-            
-    # 2c. Handle directory context hydration (-d / --dir)
-    for d_path in args.dir:
-        try:
-            target = Path(d_path).resolve()
-            if target.exists() and target.is_dir():
-                contents = []
-                for entry in os.scandir(target):
-                    entry_type = "DIR" if entry.is_dir() else "FILE"
-                    size_str = f" ({entry.stat().st_size} bytes)" if entry.is_file() else ""
-                    contents.append(f"  [{entry_type}] {entry.name}{size_str}")
-                dir_list = "\n".join(contents)
-                context_parts.append(f"=== DIRECTORY CONTEXT: {d_path} ===\n{dir_list}\n===========================")
-            else:
-                console.print(f"[yellow]Warning: Directory '{d_path}' not found or is not a dir.[/yellow]")
-        except Exception as e:
-            log(f"Error loading directory context {d_path}: {e}")
+    log(f"--- EMATA STARTUP v{VERSION} ---")
+    console.print(f"[dim]EMATA v{VERSION} (Python {platform.python_version()})[/dim]")
 
-    # 2d. Handle git diff awareness (--diff)
-    if args.diff:
-        try:
-            res = subprocess.run(
-                ["git", "diff"],
-                capture_output=True,
-                text=True,
-                timeout=10
-            )
-            if res.returncode == 0 and res.stdout.strip():
-                context_parts.append(f"=== GIT DIFF CONTEXT (Active Changes) ===\n{res.stdout.strip()}\n===========================")
-            else:
-                log("Git diff returned empty or not a git repo")
-        except Exception as e:
-            log(f"Error reading git diff: {e}")
-
-    joined_context = "\n\n".join(context_parts)
-    if joined_context:
-        config.system_instructions = (config.system_instructions or "") + "\n\n" + joined_context
-
-    # 3. Check for authentication before starting execution
-    while not config.check_auth():
+    if not config.check_auth():
+        from emata import handle_auth_setup # type: ignore
         handle_auth_setup(config)
-        if not config.check_auth():
-            console.print("\n[yellow]Auth not configured.[/yellow]")
-            try:
-                choice = input("Retry? (Y/n) or 'exit': ").lower().strip()
-            except (KeyboardInterrupt, EOFError):
-                console.print("\n[yellow]Exiting...[/yellow]")
-                sys.exit(0)
-            if choice == "exit" or choice == "n":
-                sys.exit(0)
 
-    # 4. Handle Single-Shot (Piping/Command Arguments) Execution Mode
-    query_str = " ".join(args.query).strip()
-    is_single_shot = bool(query_str) or not sys.stdin.isatty()
-    
-    if is_single_shot:
-        if not query_str:
-            query_str = "Please analyze the provided piped input content."
-            
-        try:
-            agent = Agent(config)
-            is_thinking = False
-            for chunk in agent.send_message_stream(query_str):
-                # Legacy support
-                if "text" in chunk:
-                    is_thinking = False
-                    console.print(chunk["text"], end="")
-                elif "thought" in chunk:
-                    if not is_thinking:
-                        console.print("[dim]🧠 Thinking...[/dim]\n", end="")
-                        is_thinking = True
-                    console.print(f"[dim italic]{chunk['thought']}[/dim italic]", end="")
-                # Standard API keys
-                elif chunk.get("type") == "text":
-                    is_thinking = False
-                    console.print(chunk.get("content", ""), end="")
-                elif chunk.get("type") == "thought":
-                    if not is_thinking:
-                        console.print("[dim]🧠 Thinking...[/dim]\n", end="")
-                        is_thinking = True
-                    console.print(f"[dim italic]{chunk.get('content', '')}[/dim italic]", end="")
-            console.print()
-            sys.exit(0)
-        except Exception as e:
-            console.print(f"\n[bold red]Error executing query: {e}[/bold red]")
-            sys.exit(1)
-
-    # 5. Run Interactive Shell (TMUX detaches here)
     try:
         agent = Agent(config)
-        console.print(Panel(Text("🛰️ EMATA Online", style="bold cyan"), border_style="cyan"))
+        
+        # Hydrate context
+        context_parts = []
+        if not sys.stdin.isatty():
+            piped = sys.stdin.read().strip()
+            if piped: context_parts.append(f"=== PIPED INPUT ===\n{piped}\n===================")
+        for f in args.file:
+            if os.path.isfile(f):
+                with open(f, "r", encoding="utf-8", errors="replace") as file:
+                    context_parts.append(f"=== FILE: {f} ===\n{file.read()}\n===================")
+        for d in args.dir:
+            if os.path.isdir(d):
+                ls = "\n".join([f"  {'[DIR]' if os.path.isdir(os.path.join(d,e)) else '[FILE]'} {e}" for e in os.listdir(d)])
+                context_parts.append(f"=== DIR: {d} ===\n{ls}\n===================")
+        if args.diff:
+            try:
+                res = subprocess.run(["git", "diff"], capture_output=True, text=True)
+                if res.returncode == 0 and res.stdout.strip():
+                    context_parts.append(f"=== GIT DIFF ===\n{res.stdout.strip()}\n===================")
+            except: pass
+        if context_parts:
+            config.system_instructions += "\n\n" + "\n\n".join(context_parts)
+            agent = Agent(config)
+
+        print_header(config)
+        display_help()
+        
+        B_MAGENTA = "\033[1;35m"
+        PURPLE = "\033[95m"
+        RESET = "\033[0m"
+
         while True:
             try:
-                user_input = input("\ngagent > ").strip()
-            except KeyboardInterrupt:
-                print()
-                continue
-            except EOFError:
-                console.print("\n[yellow]Exiting...[/yellow]")
+                user_input = input(f"\n{B_MAGENTA}EMATA >{RESET} {PURPLE}").strip()
+                print(RESET, end="") 
+            except (KeyboardInterrupt, EOFError):
+                print(RESET)
                 break
-                
-            if user_input.lower() in [":exit", ":quit"]: break
+            
             if not user_input: continue
-            if user_input.lower() == ":auth":
-                handle_auth_setup(config)
+            if user_input.lower() in [":exit", ":quit"]: break
+            if user_input.lower() == ":help":
+                display_help()
+                continue
+            if user_input.lower() == ":clear":
+                agent.clear_history()
+                console.print("[green]Session history cleared.[/green]")
+                continue
+            if user_input.lower() == ":report" or user_input.lower() == ":bug":
+                handle_report_issue(config)
+                continue
+            if user_input.lower() == ":yolo":
+                if input(f"Turn YOLO {'OFF' if config.yolo_mode else 'ON'}? (y/n): ").lower() == "y":
+                    config.update_setting("EMATA_YOLO_MODE", not config.yolo_mode)
+                    console.print(f"YOLO: {'ENABLED' if config.yolo_mode else 'DISABLED'}")
+                continue
+            if user_input.lower() == ":crazy":
+                if input(f"Turn CRAZY {'OFF' if config.crazy_mode else 'ON'}? (y/n): ").lower() == "y":
+                    config.update_setting("EMATA_CRAZY_MODE", not config.crazy_mode)
+                    console.print(f"CRAZY: {'ENABLED' if config.crazy_mode else 'DISABLED'}")
+                continue
+            if user_input.lower() == ":model":
+                if handle_model_selector(config, agent): agent = Agent(config)
+                continue
+            if user_input.lower() == ":keys":
+                handle_key_manager(config)
                 agent = Agent(config)
                 continue
-            if user_input.lower() == ":upgrade":
-                console.print("[bold cyan]🔄 Checking for updates...[/bold cyan]")
-                try:
-                    source_dir = os.path.dirname(os.path.abspath(__file__))
-                    res = subprocess.run(
-                        ["git", "pull"],
-                        cwd=source_dir,
-                        capture_output=True,
-                        text=True,
-                        timeout=30
-                    )
-                    if res.returncode == 0:
-                        console.print(f"[green]✓ Codebase successfully pulled from remote repository![/green]")
-                        if "Already up to date." in res.stdout:
-                            console.print("[dim]Already up to date.[/dim]")
-                        else:
-                            console.print("[yellow]Reloading EMATA...[/yellow]")
-                            venv_pip = os.path.join(source_dir, ".venv", "bin", "pip")
-                            if os.path.exists(venv_pip):
-                                console.print("[dim]Updating virtual environment dependencies...[/dim]")
-                                subprocess.run(
-                                    [venv_pip, "install", "--quiet", "-r", os.path.join(source_dir, "requirements.txt")],
-                                    cwd=source_dir
-                                )
-                                console.print("[green]✓ Virtual environment updated![/green]")
-                            console.print("[bold green]✓ Upgrade complete! Please restart EMATA to load all updates.[/bold green]")
-                    else:
-                        console.print(f"[red]Error during upgrade pull: {res.stderr.strip()}[/red]")
-                except Exception as e:
-                    console.print(f"[red]Failed to execute self-upgrade: {e}[/red]")
+            if user_input.lower() == ":session":
+                print_header(config)
                 continue
             
-            is_thinking = False
-            try:
-                for chunk in agent.send_message_stream(user_input):
-                    # Legacy support
-                    if "text" in chunk:
-                        is_thinking = False
-                        console.print(chunk["text"], end="")
-                    elif "thought" in chunk:
-                        if not is_thinking:
-                            console.print("[dim]🧠 Thinking...[/dim]\n", end="")
-                            is_thinking = True
-                        console.print(f"[dim italic]{chunk['thought']}[/dim italic]", end="")
-                    # Standard API keys
-                    elif chunk.get("type") == "text":
-                        is_thinking = False
-                        console.print(chunk.get("content", ""), end="")
-                    elif chunk.get("type") == "thought":
-                        if not is_thinking:
-                            console.print("[dim]🧠 Thinking...[/dim]\n", end="")
-                            is_thinking = True
-                        console.print(f"[dim italic]{chunk.get('content', '')}[/dim italic]", end="")
-                console.print()
-            except KeyboardInterrupt:
-                console.print("\n[yellow]Operation interrupted by user.[/yellow]")
-            except Exception as e:
-                console.print(f"\n[red]Error executing request: {e}[/red]")
-    except Exception as e:
-        log(f"Loop Error: {e}")
-        traceback.print_exc()
-        try:
-            input("Press Enter to exit...")
-        except (KeyboardInterrupt, EOFError):
-            pass
+            query = user_input
+            while query is not None:
+                tool_results = {}
+                awaiting_calls = None
+                for chunk in agent.send_message_stream(query):
+                    c_type = chunk.get("type")
+                    if c_type == "thought": console.print(f"[dim italic]{chunk.get('content')}[/dim italic]", end="")
+                    elif c_type == "text": console.print(chunk.get("content"), end="")
+                    elif c_type == "tool_call":
+                        console.print(f"\n[bold cyan]🔧 Tool: {chunk.get('name')}({chunk.get('args')})[/bold cyan]")
+                    elif c_type == "awaiting_execution": awaiting_calls = chunk.get("calls")
+                    elif c_type == "error": console.print(f"\n[bold red]Error: {chunk.get('content')}[/bold red]")
+                
+                query = None 
+                if awaiting_calls:
+                    exec_list = []
+                    for call in awaiting_calls:
+                        if config.crazy_mode or is_tool_safe(call.name, call.args):
+                            exec_list.append(call)
+                        else:
+                            if input(f"\n[bold yellow]Allow {call.name}? [y/N]: [/bold yellow]").lower() == "y":
+                                exec_list.append(call)
+                            else:
+                                tool_results[call.name] = "Error: Permission denied."
+                    
+                    for call in exec_list:
+                        console.print(f"[dim]Executing {call.name}...[/dim]")
+                        try:
+                            res = TOOL_MAPPING[call.name](**call.args)
+                        except Exception as e: res = f"Error: {e}"
+                        tool_results[call.name] = res
+                    
+                    agent.inject_tool_results(tool_results)
+                    query = ""
+            console.print()
+    except Exception as e: traceback.print_exc()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        err = traceback.format_exc()
-        log(f"FATAL: {err}")
-        print(f"\nCRITICAL FAILURE: {err}")
-        try:
-            input("Press Enter to exit...")
-        except (KeyboardInterrupt, EOFError):
-            pass
+    main()

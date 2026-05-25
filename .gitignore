@@ -1,7 +1,9 @@
 OPEN_SOURCE_PLAN.md
 .venv/
+.venv_old/
 __pycache__/
 *.log
+*.bak
 .env
 .emata/
 sessions/

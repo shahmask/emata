@@ -21,129 +21,111 @@ class Config:
         cwd = Path.cwd()
         load_dotenv(cwd / ".env", override=True)
         
-        # Priority: Env Var > Global Config > Default
-        self.api_key = os.getenv("GEMINI_API_KEY") or self.config_data.get("api_key")
+        # Multi-Key Support
+        self.keys = self.config_data.get("keys", {})  # { "nickname": "key_value" }
+        self.active_key_name = self.config_data.get("active_key_name")
+        
+        # Resolution Priority: Env Var > Active Config Key > First Available Key
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key and self.active_key_name:
+            self.api_key = self.keys.get(self.active_key_name)
+        if not self.api_key and self.keys:
+            self.active_key_name = next(iter(self.keys))
+            self.api_key = self.keys[self.active_key_name]
+
         self.model = os.getenv("GEMINI_MODEL") or self.config_data.get("model", DEFAULT_MODEL)
-        self.auth_mode = os.getenv("EMATA_AUTH_MODE") or self.config_data.get("auth_mode", "api_key")
         
-        # Crazy Mode (True = No prompts)
-        crazy_env = os.getenv("EMATA_CRAZY_MODE")
-        if crazy_env is not None:
-            self.crazy_mode = crazy_env.lower() == "true"
-        else:
-            self.crazy_mode = self.config_data.get("crazy_mode", False)
-
-        # YOLO Mode (True = Full system access)
-        yolo_env = os.getenv("EMATA_YOLO_MODE")
-        if yolo_env is not None:
-            self.yolo_mode = yolo_env.lower() == "true"
-        else:
-            self.yolo_mode = self.config_data.get("yolo_mode", True)
-
-        search_env = os.getenv("EMATA_SEARCH_ENABLED")
-        if search_env is not None:
-            self.search_enabled = search_env.lower() == "true"
-        else:
-            self.search_enabled = self.config_data.get("search_enabled", True)
+        # Mode settings
+        self.crazy_mode = self._get_bool("EMATA_CRAZY_MODE", "crazy_mode", False)
+        self.yolo_mode = self._get_bool("EMATA_YOLO_MODE", "yolo_mode", True)
+        self.search_enabled = self._get_bool("EMATA_SEARCH_ENABLED", "search_enabled", True)
         
-        # Load thinking budget and level
+        # Thinking settings
         self.thinking_level = os.getenv("GEMINI_THINKING_LEVEL") or self.config_data.get("thinking_level")
+        self.thinking_budget = self._get_int("GEMINI_THINKING_BUDGET", "thinking_budget")
         
-        budget_str = os.getenv("GEMINI_THINKING_BUDGET")
-        if budget_str is not None:
-            try:
-                self.thinking_budget = int(budget_str)
-            except ValueError:
-                self.thinking_budget = self.config_data.get("thinking_budget")
-        else:
-            self.thinking_budget = self.config_data.get("thinking_budget")
-        
-        # Load gemini.md (primary) or .gemini rules file from current working directory if it exists
         self.system_instructions = ""
 
+    def _get_bool(self, env_key, config_key, default):
+        env_val = os.getenv(env_key)
+        if env_val is not None:
+            return env_val.lower() == "true"
+        return self.config_data.get(config_key, default)
+
+    def _get_int(self, env_key, config_key):
+        env_val = os.getenv(env_key)
+        if env_val is not None:
+            try: return int(env_val)
+            except: pass
+        return self.config_data.get(config_key)
+
     def _load_global_config(self):
-        """Loads the global YAML config file."""
         if self.global_config_path.exists():
             try:
                 with open(self.global_config_path, "r") as f:
                     return yaml.safe_load(f) or {}
-            except Exception:
-                return {}
+            except: return {}
         return {}
 
     def _save_global_config(self):
-        """Saves the current config state to the global YAML file."""
         self.global_config_dir.mkdir(parents=True, exist_ok=True)
         try:
             with open(self.global_config_path, "w") as f:
                 yaml.safe_dump(self.config_data, f)
-        except Exception:
-            pass
+        except: pass
 
     def check_auth(self) -> bool:
-        """Returns True if auth is configured based on current mode."""
-        if self.auth_mode == "google_auth":
-            adc_path = Path.home() / ".config/gcloud/application_default_credentials.json"
-            return adc_path.exists()
         return bool(self.api_key)
 
-    def update_env_file(self, key: str, value: str):
-        """Updates the key in global config (primary) and syncs to codebase .env (legacy)."""
-        # Update internal config data
-        config_key_map = {
-            "GEMINI_MODEL": "model",
-            "EMATA_AUTH_MODE": "auth_mode",
-            "EMATA_CRAZY_MODE": "crazy_mode",
-            "EMATA_YOLO_MODE": "yolo_mode",
-            "EMATA_SEARCH_ENABLED": "search_enabled",
-            "GEMINI_API_KEY": "api_key"
-        }
-        
-        config_key = config_key_map.get(key)
-        if config_key:
-            # Convert string booleans to actual booleans for YAML
-            if value.lower() == "true":
-                self.config_data[config_key] = True
-            elif value.lower() == "false":
-                self.config_data[config_key] = False
-            else:
-                self.config_data[config_key] = value
+    def add_key(self, nickname: str, key_value: str):
+        self.keys[nickname] = key_value
+        self.active_key_name = nickname
+        self.api_key = key_value
+        self.config_data["keys"] = self.keys
+        self.config_data["active_key_name"] = nickname
+        self._save_global_config()
+
+    def switch_key(self, nickname: str) -> bool:
+        if nickname in self.keys:
+            self.active_key_name = nickname
+            self.api_key = self.keys[nickname]
+            self.config_data["active_key_name"] = nickname
+            self._save_global_config()
+            return True
+        return False
+
+    def delete_key(self, nickname: str):
+        if nickname in self.keys:
+            del self.keys[nickname]
+            if self.active_key_name == nickname:
+                self.active_key_name = next(iter(self.keys)) if self.keys else None
+                self.api_key = self.keys[self.active_key_name] if self.active_key_name else None
+            self.config_data["keys"] = self.keys
+            self.config_data["active_key_name"] = self.active_key_name
             self._save_global_config()
 
-        # Legacy Support: Update codebase .env file
-        codebase_dir = Path(__file__).resolve().parent
-        env_path = codebase_dir / ".env"
-        
-        lines = []
-        found = False
-        if env_path.exists():
-            with open(env_path, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-        
-        new_lines = []
-        for line in lines:
-            if line.strip().startswith(f"{key}="):
-                new_lines.append(f'{key}="{value}"\n')
-                found = True
-            else:
-                new_lines.append(line)
-        
-        if not found:
-            new_lines.append(f'{key}="{value}"\n')
-            
-        with open(env_path, "w", encoding="utf-8") as f:
-            f.writelines(new_lines)
-        
-        # Update current instance attributes
-        if key == "GEMINI_MODEL":
-            self.model = value
-        elif key == "EMATA_AUTH_MODE":
-            self.auth_mode = value
-        elif key == "EMATA_CRAZY_MODE":
-            self.crazy_mode = value.lower() == "true"
-        elif key == "EMATA_YOLO_MODE":
-            self.yolo_mode = value.lower() == "true"
-        elif key == "EMATA_SEARCH_ENABLED":
-            self.search_enabled = value.lower() == "true"
-        elif key == "GEMINI_API_KEY":
-            self.api_key = value
+    def update_setting(self, key: str, value):
+        key_map = {
+            "GEMINI_MODEL": "model",
+            "EMATA_CRAZY_MODE": "crazy_mode",
+            "EMATA_YOLO_MODE": "yolo_mode",
+            "EMATA_SEARCH_ENABLED": "search_enabled"
+        }
+        config_key = key_map.get(key)
+        if config_key:
+            self.config_data[config_key] = value
+            self._save_global_config()
+            # Update instance
+            if config_key == "model": self.model = value
+            elif config_key == "crazy_mode": self.crazy_mode = value
+            elif config_key == "yolo_mode": self.yolo_mode = value
+            elif config_key == "search_enabled": self.search_enabled = value
+
+# Singleton instance for tools to access
+config_instance = None
+
+def get_config():
+    global config_instance
+    if config_instance is None:
+        config_instance = Config()
+    return config_instance
