@@ -21,6 +21,18 @@ Standard conversational CLIs are volatile and isolated. EMATA is designed to be 
 
 ---
 
+## 🛡️ Technical Safeguards & Resilience
+
+EMATA v1.1.7+ includes "Novice-Friendly" deep-integration safeguards to handle the granular complexities of the `google-genai` SDK:
+
+*   **Context Flood Protection**: Automatically strips ANSI escape codes and terminal noise from tool outputs to save tokens and improve reasoning clarity.
+*   **Tool Output Hard-Caps**: Smart truncation for `search_grep`, `read_file`, and `run_command` prevents single massive outputs from "incinerating" your 1M token budget.
+*   **Automatic Crash Recovery**: If a query exceeds the token limit, EMATA detects the `400 INVALID_ARGUMENT` error, aggressively truncates the history, and **automatically retries** the request for you.
+*   **Proactive History Management**: Automatically prunes oldest conversation turns when history grows too large to maintain high speeds and prevent model hallucinations.
+*   **Rate-Limit Awareness**: Built-in handling for `429 Resource Exhausted` errors with clear user instructions instead of raw SDK stack traces.
+
+---
+
 ## 🚀 Runtime Commands
 
 Type these inside the EMATA shell for instant control:

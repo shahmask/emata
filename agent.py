@@ -41,6 +41,11 @@ class Agent:
             self.history.append({"role": "user", "parts": [{"text": message}]})
         
         try:
+            # Novice Protection: If history gets too long, truncate oldest turns
+            if len(self.history) > 40: # roughly 20 turns
+                logger.info("Truncating history to save context")
+                self.history = self.history[-30:] # Keep last 15 turns
+
             while True:
                 response_stream = self.client.models.generate_content_stream(
                     model=self.config.model,
@@ -96,8 +101,19 @@ class Agent:
                 break
                     
         except Exception as e:
-            logger.error(f"Loop error: {e}")
-            yield {"type": "error", "content": str(e)}
+            err_msg = str(e)
+            logger.error(f"Loop error: {err_msg}")
+            
+            # Specific novice-friendly error handling
+            if "maximum number of tokens allowed" in err_msg:
+                yield {"type": "error", "content": "Context Limit Reached! Clearing oldest history and retrying..."}
+                self.history = self.history[-10:] # Aggressive truncation
+                if message: # Retry once with truncated history
+                    yield from self.send_message_stream(None)
+            elif "429" in err_msg or "Resource has been exhausted" in err_msg:
+                yield {"type": "error", "content": "Rate Limit (429) Reached! Please wait a few seconds before your next query."}
+            else:
+                yield {"type": "error", "content": err_msg}
 
     def inject_tool_results(self, tool_responses):
         parts = []
