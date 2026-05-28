@@ -148,6 +148,42 @@ def is_tool_safe(name, args):
         return any(cmd.startswith(p) or cmd == p.strip() for p in safe_prefixes)
     return False
 
+def handle_session_manager(config, agent):
+    console.print("\n[bold cyan]🛰️ Session Manager[/bold cyan]")
+    
+    if os.environ.get("TMUX"):
+        console.print("\n[bold]Active TMUX Sessions for this directory:[/bold]")
+        try:
+            current_session = os.environ.get("TMUX_SESSION_NAME")
+            current_dir = os.getcwd()
+            res = subprocess.run(
+                ["tmux", "list-sessions", "-F", "#{session_name} #{session_attached} #{@emata_pwd}"],
+                capture_output=True, text=True
+            )
+            if res.returncode == 0:
+                found = False
+                for line in res.stdout.strip().split("\n"):
+                    parts = line.split(" ", 2)
+                    if len(parts) >= 3 and parts[2].strip() == current_dir:
+                        name, attached = parts[0], parts[1]
+                        status = "[bold green]● CURRENT[/bold green]" if name == current_session else ("[blue]Attached[/blue]" if attached == "1" else "[dim]Detached[/dim]")
+                        console.print(f"  {status} [magenta]{name}[/magenta]")
+                        found = True
+                if not found: console.print("  [dim]No other sessions found.[/dim]")
+        except: console.print("  [dim]Could not query TMUX.[/dim]")
+    
+    console.print("\n[bold]Recent History Files (~/.emata/sessions):[/bold]")
+    try:
+        files = sorted(Path(agent.session_dir).glob("*.json"), key=os.path.getmtime, reverse=True)
+        if files:
+            for f in files[:5]:
+                dt = datetime.datetime.fromtimestamp(f.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+                console.print(f"  [dim]{dt}[/dim] [cyan]{f.name}[/cyan] ({f.stat().st_size} bytes)")
+        else: console.print("  [dim]No history files found.[/dim]")
+    except: console.print("  [dim]Error listing history.[/dim]")
+    
+    console.print("\n[dim]Tip: To switch to an active session, open a new terminal and use the startup menu.[/dim]")
+
 def main():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("query", nargs="*")
@@ -215,7 +251,9 @@ def main():
                 break
             
             if not user_input: continue
-            if user_input.lower() in [":exit", ":quit"]: break
+            if user_input.lower() in [":exit", ":quit"]:
+                console.print("[cyan]Exiting Emata. Session persisted in background.[/cyan]")
+                break
             if user_input.lower() == ":help":
                 display_help()
                 continue
@@ -244,7 +282,7 @@ def main():
                 agent = Agent(config)
                 continue
             if user_input.lower() == ":session":
-                print_header(config)
+                handle_session_manager(config, agent)
                 continue
             
             query = user_input
